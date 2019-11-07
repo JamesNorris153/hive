@@ -1,9 +1,9 @@
 #app.py
-from models.block import block
+from models.blockchain import blockchain
 
 def run():
-	print("suck on my balls")
-	block1 = block([1, 2], 1, 1)
-	print(block1.compute_hash())
+	hive = blockchain()
+
+	print(hive.last_block())
 
 run()
