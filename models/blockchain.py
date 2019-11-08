@@ -2,7 +2,7 @@ from .block import block
 import time
 
 class blockchain:
-	difficulty = 5
+	difficulty = 2
 
 	def __init__(self):
 		self.unconfirmed_transactions = []
