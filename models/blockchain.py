@@ -10,7 +10,7 @@ class blockchain:
 		self.create_genesis_block()
 
 	def create_genesis_block(self):
-		genesis_block = block(0, ["OG"], time.time(), "0")
+		genesis_block = block(0, [], time.time(), "OG")
 		genesis_block.hash = genesis_block.compute_hash()
 		self.chain.append(genesis_block)
 
