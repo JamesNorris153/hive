@@ -1,6 +1,5 @@
 #app.py
 from models.blockchain import blockchain
-
 from flask import Flask, request
 import requests
 import datetime
@@ -8,7 +7,7 @@ import json
 
 format = ["author", "content"]
 app = Flask(__name__)
-blockchain = Blockchain()
+blockchain = blockchain()
 blockchain.create_genesis_block()
 node_address = "http://127.0.0.1:8000"
 posts = []
@@ -26,28 +25,28 @@ def new_transaction():
 
 	return "Successfully added new transaction", 201
 
-@app.route("get_chain", methods=["GET"])
+@app.route("/get_chain", methods=["GET"])
 def get_chain():
 	chain = []
 	for block in blockchain.chain:
 		chain.append(block.__dict__)
 
-	return json.dumps({"length": len(chain), "chain": chain})
+	return json.dumps({"length": len(chain), "chain": chain}), 200
 
-@app.route("mine", methods=["GET"])
+@app.route("/mine", methods=["GET"])
 def mine():
-	result = blockchain.mine():
+	result = blockchain.mine()
 
 	if not result:
 		return "No transactions to mine", 412
 
 	return "Block #{} has successfully been mined.".format(result), 200
 
-@app.route("get_pending_transactions", methods=["GET"])
+@app.route("/get_pending_transactions", methods=["GET"])
 def get_pending_transactions():
 	return json.dumps(blockchain.unconfirmed_transactions), 200
 
-@app.route("register_new_peers", methods=["POST"])
+@app.route("/register_new_peers", methods=["POST"])
 def register_new_peers():
 	nodes = request.get_json()
 	if not nodes:
@@ -58,7 +57,7 @@ def register_new_peers():
 
 	return "Successfully added new peers", 200
 
-@app.route("add_block", methods=["POST"])
+@app.route("/add_block", methods=["POST"])
 def add_block():
 	block_data = request.get_json()
 	new_block = Block(block_data["index"], block_data["transactions"], block_data["timestamp"], block_data["previous_hash"])
@@ -98,7 +97,7 @@ def fetch_posts():
 				content.append(transactions)
 
 		global posts
-		posts = sorted(content, key=lambda k: k=["timestamp"], reverse=True)
+		posts = sorted(content, key=lambda k: k["timestamp"], reverse=True)
 
 def consensus():
 	global blockchain
