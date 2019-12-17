@@ -83,22 +83,6 @@ def submit_transactions():
 
 	return redirect("/")
 
-def fetch_posts():
-	chain_address = "{}/chain".format(node_address)
-	response = request.get(chain_address)
-
-	if response.status_code == 200:
-		content = []
-		chain = json.loads(response.content)
-		for block in chain["chain"]:
-			for transactions in block["transactions"]:
-				transactions["index"] = block["index"]
-				transactions["hash"] = block["previous_hash"]
-				content.append(transactions)
-
-		global posts
-		posts = sorted(content, key=lambda k: k["timestamp"], reverse=True)
-
 def consensus():
 	global blockchain
 
