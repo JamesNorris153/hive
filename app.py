@@ -1,27 +1,34 @@
 #app.py
-from models.blockchain import blockchain
-from flask import Flask, request
+from models.Blockchain import Blockchain
+from models.Transaction import Transaction
+from flask import Flask, request, render_template
 import requests
-import datetime
+import time
 import json
 
-format = ["author", "content"]
+format = ["sender", "recipient", "amount"]
 app = Flask(__name__)
-blockchain = blockchain()
+blockchain = Blockchain()
 blockchain.create_genesis_block()
 node_address = "http://127.0.0.1:8000"
 posts = []
 peers = set()
 
+@app.route("/", methods=["GET"])
+def index():
+	return render_template("index.html")
+
 @app.route("/new_transaction", methods=["POST"])
 def new_transaction():
-	transaction = request.get_json()
+	data = request.form.to_dict()
 
 	for field in format:
-		if not transaction.get(field):
+		if not data.get(field):
 			return "Invalid transaction data", 404
 
-	tx_data["timestamp"] = time.time()
+
+	transaction = Transaction(data["sender"], data["recipient"], data["amount"], time.time())
+	blockchain.add_transaction(transaction);
 
 	return "Successfully added new transaction", 201
 

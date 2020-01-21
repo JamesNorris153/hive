@@ -1,7 +1,7 @@
 import json
 from hashlib import sha256
 
-class block:
+class Block:
 	def __init__(self, index, transactions, timestamp, previous_hash, nonce=0):
 		self.index = index
 		self.transactions = transactions
@@ -10,5 +10,6 @@ class block:
 		self.nonce = nonce
 
 	def compute_hash(self):
+		print(self.__dict__)
 		block_string = json.dumps(self.__dict__, sort_keys = True)
 		return sha256(block_string.encode()).hexdigest()

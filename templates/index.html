@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<link rel="stylesheet" type="text/css" href="/static/css/stylesheet.css">
+	<title>hive</title>
+</head>
+<body>
+	<h1>welcome to the hive.</h1>
+	<b>make a new transaction:</b>
+	<form method="post" action="http://localhost:8000/new_transaction">
+		<input type="text" name="sender" placeholder="sender"><br>
+		<input type="text" name="recipient" placeholder="recipient"><br>
+		<input type="number" name="amount" placeholder="amount"><br>
+		<input type="submit" placeholder="submit">
+	</form method="post">
+	<b>mine block:</b>
+	<form method="get" action="http://localhost:8000/mine">
+		<input type="submit" name="mine" placeholder="mine">
+	</form>
+	<b>display blockchain:</b>
+	<form method="get" action="http://localhost:8000/get_chain">
+		<input type="submit" name="get_chain" placeholder="see the hive">
+	</form>
+
+</body>
+
+<script src="/static/javascript/index.js"></script>
+
+</html>

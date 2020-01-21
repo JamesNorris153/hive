@@ -1,7 +1,7 @@
-from .block import block
+from .Block import Block
 import time
 
-class blockchain:
+class Blockchain:
 	difficulty = 2
 
 	def __init__(self):
@@ -10,7 +10,7 @@ class blockchain:
 		self.create_genesis_block()
 
 	def create_genesis_block(self):
-		genesis_block = block(0, [], time.time(), "OG")
+		genesis_block = Block(0, [], time.time(), "OG")
 		genesis_block.hash = genesis_block.compute_hash()
 		self.chain.append(genesis_block)
 
@@ -43,7 +43,7 @@ class blockchain:
 	def validate_proof(self, block, proof):
 		return (proof.startswith('0' * blockchain.difficulty) and proof == block.compute_hash())
 
-	def add_new_transaction(self, transaction):
+	def add_transaction(self, transaction):
 		self.unconfirmed_transactions.append(transaction)
 
 	def mine(self):
@@ -52,7 +52,7 @@ class blockchain:
 
 		last_block = self.last_block()
 
-		new_block = block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), previous_hash=last_block.compute_hash())
+		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), previous_hash=last_block.compute_hash())
 
 		proof = self.proof_of_work(new_block)
 		self.add_block(new_block, proof)
