@@ -21,7 +21,7 @@ class Blockchain:
 		block.nonce = 0
 
 		computed_hash = block.compute_hash()
-		while not computed_hash.startswith('0' * blockchain.difficulty):
+		while not computed_hash.startswith('0' * Blockchain.difficulty):
 			block.nonce += 1
 			computed_hash = block.compute_hash()
 
@@ -41,10 +41,10 @@ class Blockchain:
 		return True
 
 	def validate_proof(self, block, proof):
-		return (proof.startswith('0' * blockchain.difficulty) and proof == block.compute_hash())
+		return (proof.startswith('0' * Blockchain.difficulty) and proof == block.compute_hash())
 
 	def add_transaction(self, transaction):
-		self.unconfirmed_transactions.append(transaction)
+		self.unconfirmed_transactions.append(transaction.__dict__)
 
 	def mine(self):
 		if not self.unconfirmed_transactions:

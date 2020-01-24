@@ -9,7 +9,6 @@ import json
 format = ["sender", "recipient", "amount"]
 app = Flask(__name__)
 blockchain = Blockchain()
-blockchain.create_genesis_block()
 node_address = "http://127.0.0.1:8000"
 posts = []
 peers = set()
