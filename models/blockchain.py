@@ -27,6 +27,9 @@ class Blockchain:
 
 		return computed_hash
 
+	def proof_of_stake(self, block):
+		return proof_of_work(block)
+
 	def add_block(self, block, proof):
 		previous_hash = self.last_block().compute_hash()
 
@@ -54,7 +57,7 @@ class Blockchain:
 
 		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), previous_hash=last_block.compute_hash())
 
-		proof = self.proof_of_work(new_block)
+		proof = self.proof_of_stake(new_block)
 		self.add_block(new_block, proof)
 		self.unconfirmed_transactions = []
 		return new_block.index
