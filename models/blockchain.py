@@ -3,6 +3,7 @@ import time
 
 class Blockchain:
 	difficulty = 2
+	timeslot = 10
 
 	def __init__(self):
 		self.unconfirmed_transactions = []
@@ -27,7 +28,8 @@ class Blockchain:
 
 		return computed_hash
 
-	def proof_of_stake(self, block):
+	def proof_of_stake(self, block, stake):
+		computed_hash = block.compute_hash()
 		return proof_of_work(block)
 
 	def add_block(self, block, proof):

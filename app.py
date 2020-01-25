@@ -17,6 +17,8 @@ peers = set()
 def index():
 	return render_template("index.html")
 
+@app.route("")
+
 @app.route("/new_transaction", methods=["POST"])
 def new_transaction():
 	data = request.form.to_dict()
