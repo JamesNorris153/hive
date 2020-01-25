@@ -1,6 +1,7 @@
 #app.py
 from models.Blockchain import Blockchain
 from models.Transaction import Transaction
+from models.Bee import Bee
 from flask import Flask, request, render_template
 import requests
 import time
@@ -16,8 +17,6 @@ peers = set()
 @app.route("/", methods=["GET"])
 def index():
 	return render_template("index.html")
-
-@app.route("")
 
 @app.route("/new_transaction", methods=["POST"])
 def new_transaction():
@@ -117,4 +116,5 @@ def propogate_new_block():
 		url = "http://{}/add_block".format(peer)
 		requests.post(url, data=json.dumps(block.__dict__, sort_keys=True))
 
+bee = Bee("james", 1000)
 app.run(debug=True, port=8000)
