@@ -10,12 +10,14 @@ import json
 format = ["sender", "recipient", "amount"]
 app = Flask(__name__)
 blockchain = Blockchain()
-node_address = "http://127.0.0.1:8000"
+bee = Bee("http://127.0.0.1:8000", 100, 50)
 posts = []
 peers = set()
 
 @app.route("/", methods=["GET"])
 def index():
+	if bee.stake > 0:
+		blockchain.add_validator(bee)
 	return render_template("index.html")
 
 @app.route("/new_transaction", methods=["POST"])
@@ -27,7 +29,7 @@ def new_transaction():
 			return "Invalid transaction data", 404
 
 
-	transaction = Transaction(data["sender"], data["recipient"], data["amount"], time.time())
+	transaction = Transaction(bee.address, data["recipient"], data["amount"], time.time())
 	blockchain.add_transaction(transaction);
 
 	return "Successfully added new transaction", 201
@@ -42,7 +44,9 @@ def get_chain():
 
 @app.route("/mine", methods=["GET"])
 def mine():
-	result = blockchain.mine()
+	algorithm_data = request.get_json()
+	algorithm = algorithm_data["algorithm"]
+	result = blockchain.mine(proof_type, bee)
 
 	if not result:
 		return "No transactions to mine", 412

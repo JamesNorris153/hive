@@ -8,10 +8,11 @@ class Blockchain:
 	def __init__(self):
 		self.unconfirmed_transactions = []
 		self.chain = []
+		self.validators = []
 		self.create_genesis_block()
 
 	def create_genesis_block(self):
-		genesis_block = Block(0, [], time.time(), "OG")
+		genesis_block = Block(0, [], time.time(), "OG", 1)
 		genesis_block.hash = genesis_block.compute_hash()
 		self.chain.append(genesis_block)
 
@@ -28,9 +29,16 @@ class Blockchain:
 
 		return computed_hash
 
-	def proof_of_stake(self, block, stake):
-		computed_hash = block.compute_hash()
-		return proof_of_work(block)
+	def proof_of_stake(self, block, bee):
+		next_validator = None
+		for validator in validators:
+			if validator.stake > maximum:
+				validator = validator
+
+		if next_validator == bee:
+			block.sign_block(next_validator)
+
+		return next_validator.address
 
 	def add_block(self, block, proof):
 		previous_hash = self.last_block().compute_hash()
@@ -45,21 +53,37 @@ class Blockchain:
 		self.chain.append(block)
 		return True
 
-	def validate_proof(self, block, proof):
+	def validate_proof_of_work(self, block, proof):
 		return (proof.startswith('0' * Blockchain.difficulty) and proof == block.compute_hash())
+
+	def validate_proof_of_stake(self, block, proof):
+		return block.
 
 	def add_transaction(self, transaction):
 		self.unconfirmed_transactions.append(transaction.__dict__)
 
-	def mine(self):
+	def add_validator(self, bee):
+		self.validators.append(bee)
+
+	def mine(self, proof_type, bee):
 		if not self.unconfirmed_transactions:
 			return False
 
 		last_block = self.last_block()
+		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_method=proof_type previous_hash=last_block.compute_hash())
 
-		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), previous_hash=last_block.compute_hash())
+		if proof_type == 0:
+			proof = self.proof_of_work(new_block)
+		elif proof_type == 1:
+			next_validator = None
+			for validator in validators:
+				if validator.stake > maximum:
+					validator = validator
 
-		proof = self.proof_of_stake(new_block)
-		self.add_block(new_block, proof)
+			if next_validator == bee:
+				self.proof_of_stake(bee)
+
+		self.add_block(new_block)
 		self.unconfirmed_transactions = []
+
 		return new_block.index
