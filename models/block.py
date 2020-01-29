@@ -7,7 +7,7 @@ class Block:
 		self.transactions = transactions
 		self.timestamp = timestamp
 		self.previous_hash = previous_hash
-		self.proof_method = proof_method
+		self.proof_type = proof_type
 		self.signature = None
 		self.nonce = nonce
 

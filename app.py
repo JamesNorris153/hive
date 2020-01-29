@@ -1,16 +1,15 @@
 #app.py
 from models.Blockchain import Blockchain
-from models.Transaction import Transaction
 from models.Bee import Bee
 from flask import Flask, request, render_template
 import requests
 import time
 import json
 
-format = ["sender", "recipient", "amount"]
+format = ["recipient", "amount"]
 app = Flask(__name__)
 blockchain = Blockchain()
-bee = Bee("http://127.0.0.1:8000", 100, 50)
+bee = Bee("http://127.0.0.1:8000", 1000, 50)
 posts = []
 peers = set()
 
@@ -28,9 +27,7 @@ def new_transaction():
 		if not data.get(field):
 			return "Invalid transaction data", 404
 
-
-	transaction = Transaction(bee.address, data["recipient"], data["amount"], time.time())
-	blockchain.add_transaction(transaction);
+	blockchain.add_transaction(bee.address, data["recipient"], data["amount"], time.time());
 
 	return "Successfully added new transaction", 201
 
@@ -42,11 +39,18 @@ def get_chain():
 
 	return json.dumps({"length": len(chain), "chain": chain}), 200
 
-@app.route("/mine", methods=["GET"])
-def mine():
-	algorithm_data = request.get_json()
-	algorithm = algorithm_data["algorithm"]
-	result = blockchain.mine(proof_type, bee)
+@app.route("/mine_pow", methods=["GET"])
+def mine_pow():
+	result = blockchain.mine()
+
+	if not result:
+		return "No transactions to mine", 412
+
+	return "Block #{} has successfully been mined.".format(result), 200
+
+@app.route("/mine_pos", methods=["GET"])
+def mine_pos():
+	result = blockchain.mine(bee)
 
 	if not result:
 		return "No transactions to mine", 412
@@ -120,5 +124,4 @@ def propogate_new_block():
 		url = "http://{}/add_block".format(peer)
 		requests.post(url, data=json.dumps(block.__dict__, sort_keys=True))
 
-bee = Bee("james", 1000)
 app.run(debug=True, port=8000)

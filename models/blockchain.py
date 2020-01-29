@@ -1,4 +1,5 @@
 from .Block import Block
+from .Transaction import Transaction
 import time
 
 class Blockchain:
@@ -38,18 +39,31 @@ class Blockchain:
 		if next_validator == bee:
 			block.sign_block(next_validator)
 
-		return next_validator.address
+		return next_validator.key_pair.PublicKey
 
-	def add_block(self, block, proof):
+	def add_pow_block(self, block, proof):
 		previous_hash = self.last_block().compute_hash()
 
 		if previous_hash != block.previous_hash:
 			return False
 
-		if not self.validate_proof(block, proof):
+		if not self.validate_proof_of_work(block, proof):
 			return False
 
 		block.hash = proof
+		self.chain.append(block)
+		return True
+
+	def add_pos_block(self, block, proof):
+		previous_hash = self.last_block().compute_hash()
+
+		if previous_hash != block.previous_hash:
+			return False
+
+		if not self.validate_proof_of_stake(block, proof):
+			return False
+
+		block.signature = proof
 		self.chain.append(block)
 		return True
 
@@ -57,33 +71,53 @@ class Blockchain:
 		return (proof.startswith('0' * Blockchain.difficulty) and proof == block.compute_hash())
 
 	def validate_proof_of_stake(self, block, proof):
-		return block.
+		next_validator = None
+		for validator in validators:
+			if validator.stake > maximum:
+				next_validator = validator
+
+		return block.signature == next_validator.key_pair.PublicKey
 
 	def add_transaction(self, transaction):
+		self.unconfirmed_transactions.append(transaction)
+
+	def add_transaction(self, sender, recipient, amount, time):
+		transaction = Transaction(sender, recipient, amount, time)
 		self.unconfirmed_transactions.append(transaction.__dict__)
 
 	def add_validator(self, bee):
 		self.validators.append(bee)
 
-	def mine(self, proof_type, bee):
+	def mine_pow(self):
 		if not self.unconfirmed_transactions:
 			return False
 
 		last_block = self.last_block()
-		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_method=proof_type previous_hash=last_block.compute_hash())
+		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_method=proof_type, previous_hash=last_block.compute_hash())
 
-		if proof_type == 0:
-			proof = self.proof_of_work(new_block)
-		elif proof_type == 1:
-			next_validator = None
-			for validator in validators:
-				if validator.stake > maximum:
-					validator = validator
+		proof = self.proof_of_work(new_block)
 
-			if next_validator == bee:
-				self.proof_of_stake(bee)
+		self.add_pow_block(new_block, proof)
+		self.unconfirmed_transactions = []
 
-		self.add_block(new_block)
+		return new_block.index
+
+	def mine_pos(self, bee):
+		if not self.unconfirmed_transactions:
+			return False
+
+		last_block = self.last_block()
+		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_method=proof_type, previous_hash=last_block.compute_hash())
+
+		next_validator = None
+		for validator in validators:
+			if validator.stake > maximum:
+				next_validator = validator
+
+		if next_validator == bee:
+			proof = self.proof_of_stake(bee)
+
+		self.add_pos_block(new_block, proof, proof_type)
 		self.unconfirmed_transactions = []
 
 		return new_block.index
