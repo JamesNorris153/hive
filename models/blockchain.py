@@ -31,15 +31,8 @@ class Blockchain:
 		return computed_hash
 
 	def proof_of_stake(self, block, bee):
-		next_validator = None
-		for validator in validators:
-			if validator.stake > maximum:
-				validator = validator
-
-		if next_validator == bee:
-			block.sign_block(next_validator)
-
-		return next_validator.key_pair.PublicKey
+		block.sign_block(bee)
+		return bee.key_pair.export_key("PEM")
 
 	def add_pow_block(self, block, proof):
 		previous_hash = self.last_block().compute_hash()
@@ -58,12 +51,16 @@ class Blockchain:
 		previous_hash = self.last_block().compute_hash()
 
 		if previous_hash != block.previous_hash:
+			print("hash")
 			return False
 
 		if not self.validate_proof_of_stake(block, proof):
+			print(proof)
+			print("signature")
 			return False
 
-		block.signature = proof
+		block.signature = str(proof)
+		block.hash = block.compute_hash()
 		self.chain.append(block)
 		return True
 
@@ -71,12 +68,8 @@ class Blockchain:
 		return (proof.startswith('0' * Blockchain.difficulty) and proof == block.compute_hash())
 
 	def validate_proof_of_stake(self, block, proof):
-		next_validator = None
-		for validator in validators:
-			if validator.stake > maximum:
-				next_validator = validator
-
-		return block.signature == next_validator.key_pair.PublicKey
+		next_validator = self.get_next_validator()
+		return block.signature == next_validator.key_pair.export_key("PEM")
 
 	def add_transaction(self, transaction):
 		self.unconfirmed_transactions.append(transaction)
@@ -93,7 +86,7 @@ class Blockchain:
 			return False
 
 		last_block = self.last_block()
-		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_method=proof_type, previous_hash=last_block.compute_hash())
+		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_type="PoW", previous_hash=last_block.compute_hash())
 
 		proof = self.proof_of_work(new_block)
 
@@ -107,17 +100,22 @@ class Blockchain:
 			return False
 
 		last_block = self.last_block()
-		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_method=proof_type, previous_hash=last_block.compute_hash())
+		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_type="PoS", previous_hash=last_block.compute_hash())
 
-		next_validator = None
-		for validator in validators:
-			if validator.stake > maximum:
-				next_validator = validator
+		next_validator = self.get_next_validator()
 
 		if next_validator == bee:
-			proof = self.proof_of_stake(bee)
+			proof = self.proof_of_stake(new_block, bee)
 
-		self.add_pos_block(new_block, proof, proof_type)
+		self.add_pos_block(new_block, proof)
 		self.unconfirmed_transactions = []
 
 		return new_block.index
+
+	def get_next_validator(self):
+		next_validator = self.validators[0]
+		for validator in self.validators:
+			if validator.stake > next_validator.stake:
+				next_validator = validator
+
+		return next_validator

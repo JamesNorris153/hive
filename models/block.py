@@ -16,4 +16,4 @@ class Block:
 		return sha256(block_string.encode()).hexdigest()
 
 	def sign_block(self, validator):
-		self.signature = validator.key_pair.PublicKey
+		self.signature = validator.key_pair.export_key("PEM")

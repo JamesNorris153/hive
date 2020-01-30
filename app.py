@@ -41,21 +41,21 @@ def get_chain():
 
 @app.route("/mine_pow", methods=["GET"])
 def mine_pow():
-	result = blockchain.mine()
+	result = blockchain.mine_pow()
 
 	if not result:
 		return "No transactions to mine", 412
 
-	return "Block #{} has successfully been mined.".format(result), 200
+	return "Block #{} has successfully been mined".format(result), 200
 
 @app.route("/mine_pos", methods=["GET"])
 def mine_pos():
-	result = blockchain.mine(bee)
+	result = blockchain.mine_pos(bee)
 
 	if not result:
 		return "No transactions to mine", 412
 
-	return "Block #{} has successfully been mined.".format(result), 200
+	return "Block #{} has successfully been mined".format(result), 200
 
 @app.route("/get_pending_transactions", methods=["GET"])
 def get_pending_transactions():

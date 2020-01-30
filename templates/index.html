@@ -13,9 +13,13 @@
 		<input type="number" name="amount" placeholder="amount"><br>
 		<input type="submit" placeholder="submit">
 	</form method="post">
-	<b>mine block:</b>
-	<form method="get" action="http://localhost:8000/mine">
-		<input type="submit" name="mine" placeholder="mine">
+	<b>mine block using PoW:</b>
+	<form method="get" action="http://localhost:8000/mine_pow">
+		<input type="submit" name="mine_pow" placeholder="mine">
+	</form>
+	<b>mine block using PoS:</b>
+	<form method="get" action="http://localhost:8000/mine_pos">
+		<input type="submit" name="mine_pos" placeholder="mine">
 	</form>
 	<b>display blockchain:</b>
 	<form method="get" action="http://localhost:8000/get_chain">
