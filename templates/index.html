@@ -8,23 +8,27 @@
 <body>
 	<h1>welcome to the hive.</h1>
 	<b>make a new transaction:</b>
-	<form method="post" action="http://localhost:8000/new_transaction">
+	<form method="post" action="/new_transaction">
 		<input type="text" name="recipient" placeholder="recipient"><br>
 		<input type="number" name="amount" placeholder="amount"><br>
 		<input type="submit" placeholder="submit">
 	</form method="post">
 	<b>mine block using PoW:</b>
-	<form method="get" action="http://localhost:8000/mine_pow">
+	<form method="get" action="/mine_pow">
 		<input type="submit" name="mine_pow" placeholder="mine">
 	</form>
 	<b>mine block using PoS:</b>
-	<form method="get" action="http://localhost:8000/mine_pos">
+	<form method="get" action="/mine_pos">
 		<input type="submit" name="mine_pos" placeholder="mine">
 	</form>
 	<b>display blockchain:</b>
-	<form method="get" action="http://localhost:8000/get_chain">
+	<form method="get" action="/get_chain">
 		<input type="submit" name="get_chain" placeholder="see the hive">
 	</form>
+
+	<b>add a new node:</b>
+	<form method="post" action="/add_new_node">
+
 
 </body>
 

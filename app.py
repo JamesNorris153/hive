@@ -6,11 +6,13 @@ import requests
 import time
 import json
 
-format = ["recipient", "amount"]
+transaction_format = ["recipient", "amount"]
+peer_format = ["address"]
 app = Flask(__name__)
 blockchain = Blockchain()
 address = "http://127.0.0.1:5000/"
 bee = Bee(address, 1000, 50)
+bee.generate_key_pair()
 posts = []
 peers = set()
 
@@ -24,7 +26,7 @@ def index():
 def new_transaction():
 	data = request.form.to_dict()
 
-	for field in format:
+	for field in transaction_format:
 		if not data.get(field):
 			return "Invalid transaction data", 404
 
@@ -64,12 +66,15 @@ def get_pending_transactions():
 
 @app.route("/register_new_peers", methods=["POST"])
 def register_new_peers():
-	nodes = request.get_json()
-	if not nodes:
-		return "Invalid data", 400
+	peer_data = request.get_json()
 
-	for node in nodes:
-		peers.add(node)
+	for field in peer_format:
+		if not peer_data.get(field):
+			return "Invalid node data", 404
+
+	peer = Bee(peer_data["address"], None, None)
+	peer.calculate_balance(blockchain)
+	peers.add(peer)
 
 	return "Successfully added new peers", 200
 
