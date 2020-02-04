@@ -9,7 +9,8 @@ import json
 format = ["recipient", "amount"]
 app = Flask(__name__)
 blockchain = Blockchain()
-bee = Bee("http://127.0.0.1:8000", 1000, 50)
+address = "http://127.0.0.1:5000/"
+bee = Bee(address, 1000, 50)
 posts = []
 peers = set()
 
