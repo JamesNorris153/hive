@@ -9,14 +9,13 @@ class Bee:
 		self.key_pair = None
 
 	def generate_key_pair(self):
-		self.key_pair = RSA.generate(1024, Random.new().read)
+		self.key_pair = RSA.generate(2048)
 
 	def calculate_balance(self, blockchain):
-		self.honeycomb == 0
-		self.stake == 0
-		
+		self.honeycomb = 0
+
 		for block in blockchain.chain:
-			for transaction in transactions:
+			for transaction in block.transactions:
 				if transaction.sender == self.address:
 					self.decrement_balance(transaction.amount)
 
@@ -32,4 +31,18 @@ class Bee:
 		self.honeycomb += amount
 
 	def decrement_balance(self, amount):
+		if self.honeycomb < amount:
+			return False
+
 		self.honeycomb -= amount
+
+	def increment_stake(self, amount):
+		self.honeycomb -= amount
+		self.stake += amount
+
+	def decrement_stake(self, amount):
+		if self.honeycomb < amount:
+			return False
+
+		self.honeycomb += amount
+		self.stake -= amount

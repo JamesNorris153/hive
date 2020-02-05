@@ -12,7 +12,7 @@
 		<input type="text" name="recipient" placeholder="recipient"><br>
 		<input type="number" name="amount" placeholder="amount"><br>
 		<input type="submit" placeholder="submit">
-	</form method="post">
+	</form>
 	<b>mine block using PoW:</b>
 	<form method="get" action="/mine_pow">
 		<input type="submit" name="mine_pow" placeholder="mine">
@@ -27,7 +27,10 @@
 	</form>
 
 	<b>add a new node:</b>
-	<form method="post" action="/add_new_node">
+	<form method="post" action="/register_new_peer">
+		<input type="text" name="address" placeholder="address"><br>
+		<input type="submit" placeholder="submit">
+	</form>
 
 
 </body>

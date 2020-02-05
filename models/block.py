@@ -12,8 +12,21 @@ class Block:
 		self.nonce = nonce
 
 	def compute_hash(self):
-		block_string = json.dumps(self.__dict__, sort_keys = True)
+		block_string = json.dumps(self.to_dict(), sort_keys=True)
 		return sha256(block_string.encode()).hexdigest()
 
 	def sign_block(self, validator):
-		self.signature = validator.key_pair.export_key("PEM")
+		self.signature = validator.key_pair.publickey().export_key()
+
+	def to_dict(self):
+		block_dict = dict()
+		block_dict["index"] = self.index
+		block_dict["transactions"] = dict()
+		for transaction in self.transactions:
+			block_dict["transactions"][] 
+		block_dict["timestamp"] = self.timestamp
+		block_dict["previous_hash"] = self.previous_hash
+		block_dict["proof_type"] = self.proof_type
+		block_dict["signature"] = self.signature
+		block_dict["nonce"] = self.nonce
+		return block_dict
