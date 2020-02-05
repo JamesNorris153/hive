@@ -21,9 +21,9 @@ class Block:
 	def to_dict(self):
 		block_dict = dict()
 		block_dict["index"] = self.index
-		block_dict["transactions"] = dict()
+		block_dict["transactions"] = []
 		for transaction in self.transactions:
-			block_dict["transactions"][] 
+			block_dict["transactions"].append(transaction.__dict__)
 		block_dict["timestamp"] = self.timestamp
 		block_dict["previous_hash"] = self.previous_hash
 		block_dict["proof_type"] = self.proof_type
