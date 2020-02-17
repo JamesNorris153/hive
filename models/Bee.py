@@ -2,10 +2,9 @@ from Crypto.PublicKey import RSA
 from Crypto import Random
 
 class Bee:
-	def __init__(self, address, honeycomb, stake):
+	def __init__(self, address, honeycomb):
 		self.address = address
 		self.honeycomb = honeycomb
-		self.stake = stake
 		self.key_pair = None
 
 	def generate_key_pair(self):
@@ -35,14 +34,3 @@ class Bee:
 			return False
 
 		self.honeycomb -= amount
-
-	def increment_stake(self, amount):
-		self.honeycomb -= amount
-		self.stake += amount
-
-	def decrement_stake(self, amount):
-		if self.honeycomb < amount:
-			return False
-
-		self.honeycomb += amount
-		self.stake -= amount

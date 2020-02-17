@@ -10,16 +10,16 @@ transaction_format = ["recipient", "amount"]
 peer_format = ["address"]
 app = Flask(__name__)
 blockchain = Blockchain()
-address = "http://127.0.0.1:8001/"
-bee = Bee(address, 1000, 50)
+address = "http://127.0.0.1:8000/"
+print(app.config["SERVER_NAME"])
+bee = Bee(app.config["SERVER_NAME"], 1000)
 bee.generate_key_pair()
+blockchain.add_validator(bee)
 posts = []
 peers = set()
 
 @app.route("/", methods=["GET"])
 def index():
-	if bee.stake > 0:
-		blockchain.add_validator(bee)
 	return render_template("index.html")
 
 @app.route("/new_transaction", methods=["POST"])
@@ -67,16 +67,15 @@ def get_pending_transactions():
 @app.route("/register_new_peer", methods=["POST"])
 def register_new_peer():
 	peer_data = request.form.to_dict()
-	print(peer_data["address"])
 
 	for field in peer_format:
 		if not peer_data.get(field):
 			return "Invalid node data", 404
 
-	peer = Bee(peer_data["address"], None, None)
+	peer = Bee(peer_data["address"], None)
 	peer.calculate_balance(blockchain)
 	peers.add(peer)
-	blockchain.add_validator("")
+	blockchain.add_validator(peer)
 
 	return "Successfully added new peers", 200
 
@@ -132,4 +131,4 @@ def propogate_new_block():
 		url = "http://{}/add_block".format(peer)
 		requests.post(url, data=json.dumps(block.__dict__, sort_keys=True))
 
-app.run(debug=True, port=8001)
+app.run(debug=True)
