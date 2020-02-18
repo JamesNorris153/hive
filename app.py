@@ -10,30 +10,28 @@ import json
 import sys
 
 
-transaction_format = ["recipient", "amount"]
+transaction_format = ["sender", "recipient", "amount"]
 peer_format = ["address"]
 app = Flask(__name__)
 blockchain = Blockchain()
-address = "http://127.0.0.1:" + str(sys.argv[3]) + "/"
-bee = Bee(address, 1000)
+address = "http://127.0.0.1:" + str(sys.argv[3])
+bee = Bee(address, 0)
 blockchain.add_validator(bee)
-posts = []
 peers = set()
-
 
 @app.route("/", methods=["GET"])
 def index():
-	return render_template("index.html")
+	return render_template("index.html", address = address)
 
-@app.route("/new_transaction", methods=["POST"])
-def new_transaction():
+@app.route("/add_transaction", methods=["POST"])
+def add_transaction():
 	data = request.form.to_dict()
 
 	for field in transaction_format:
 		if not data.get(field):
 			return "Invalid transaction data", 404
 
-	blockchain.add_transaction(bee.address, data["recipient"], data["amount"], time.time());
+	blockchain.add_transaction(data["sender"], data["recipient"], data["amount"], time.time());
 
 	return "Successfully added new transaction", 201
 
@@ -84,7 +82,13 @@ def register_new_peer():
 			return "Invalid node data", 404
 
 	peer = Bee(peer_data["address"], None)
-	peer.calculate_balance(blockchain)
+
+	response = requests.get("{}/get_publickey".format(peer_data["address"]))
+	public_key = response.text
+	print(public_key)
+	peer.public_key = public_key
+
+	blockchain.refresh_validator_stakes()
 	peers.add(peer)
 	blockchain.add_validator(peer)
 
@@ -107,6 +111,7 @@ def add_block():
 		added = blockchain.add_pow_block(new_block, proof)
 
 	if block_data["proof_type"] == "PoS":
+		print(block_data["proof_type"])
 		added = blockchain.add_pos_block(new_block, proof)
 
 	if not added:
@@ -115,29 +120,15 @@ def add_block():
 	return "Block added to the chain", 201
 
 
-@app.route("/submit", methods=["POST"])
-def submit_transactions():
-	author = request.form["author"]
-	content = request.form["content"]
-
-	json = {"author": author, "content": content}
-
-	transaction_address = "{}/new_transaction".format(node_address)
-
-	requests.post(transaction_adress, json=json, headers={"Content-type": "application/json"})
-
-	return redirect("/")
-
-
 @app.route("/consensus", methods=["GET"])
 def consensus():
 	global blockchain
 
 	longest_chain = None
-	current_length = len(blockchain)
+	current_length = len(blockchain.chain)
 
 	for peer in peers:
-		response = request.get("http://{}/get_chain".format(peer))
+		response = request.get("{}/get_chain".format(peer))
 		length = response.json()["length"]
 		chain = response.json()["chain"]
 
@@ -152,11 +143,29 @@ def consensus():
 	return False
 
 
+@app.route("/balance", methods=["GET"])
+def balance():
+	bee.calculate_balance(blockchain.chain)
+	return "Your balance is {}".format(bee.honeycomb), 200
+
+
+@app.route("/get_publickey", methods=["GET"])
+def get_publickey():
+	print(str(bee.key_pair.publickey().export_key()))
+	return str(bee.key_pair.publickey().export_key()), 200
+
+
 def propogate_new_block(proof, block):
 	for peer in peers:
-		url = "http://{}/add_block".format(peer.address)
-		data = json.dumps({"proof": proof, "block": json.dumps(block.to_dict(), sort_keys=True)})
+		url = "{}/add_block".format(peer.address)
+		data = json.dumps({"proof": str(proof), "block": json.dumps(block.to_dict(), sort_keys=True)})
 		requests.post(url, json=data)
+
+
+def propogate_new_transaction(proof, transaction):
+	for peer in peers:
+		url = "{}/add_transaction".format(peer.address)
+		data = json.dumps(transaction.to_dict())
 
 if __name__ == "__main__":
 	app.run(debug=True)

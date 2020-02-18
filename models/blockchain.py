@@ -13,7 +13,10 @@ class Blockchain:
 		self.create_genesis_block()
 
 	def create_genesis_block(self):
-		genesis_block = Block(0, [], 0, "OG", 1)
+		transactions = []
+		transactions.append(Transaction("god", "http://127.0.0.1:8000", 1000, 1))
+		transactions.append(Transaction("god", "http://127.0.0.1:8001", 500, 2))
+		genesis_block = Block(0, transactions, 0, "OG", 1)
 		genesis_block.hash = genesis_block.compute_hash()
 		self.chain.append(genesis_block)
 
@@ -55,9 +58,11 @@ class Blockchain:
 		previous_hash = self.last_block().compute_hash()
 
 		if previous_hash != block.previous_hash:
+			print(previous_hash)
+			print(block.previous_hash)
 			return False
 
-		if not self.validate_proof_of_stake(block, proof):
+		if not self.validate_proof_of_stake(proof):
 			return False
 
 		block.signature = str(proof)
@@ -68,9 +73,9 @@ class Blockchain:
 	def validate_proof_of_work(self, block, proof):
 		return (proof.startswith('0' * Blockchain.difficulty) and proof == block.compute_hash())
 
-	def validate_proof_of_stake(self, block, proof):
+	def validate_proof_of_stake(self, proof):
 		next_validator = self.get_next_validator()
-		return block.signature == next_validator.key_pair.publickey().export_key()
+		return str(proof) == str(next_validator.public_key)
 
 	def add_transaction(self, transaction):
 		self.unconfirmed_transactions.append(transaction)
@@ -105,18 +110,25 @@ class Blockchain:
 
 		next_validator = self.get_next_validator()
 
-		if next_validator == bee:
-			proof = self.proof_of_stake(new_block, bee)
+		if next_validator != bee:
+			return False, None
 
+		proof = self.proof_of_stake(new_block, bee)
 		self.add_pos_block(new_block, proof)
 		self.unconfirmed_transactions = []
 
 		return proof, new_block
 
 	def get_next_validator(self):
+		self.refresh_validator_stakes()
 		next_validator = self.validators[0]
+
 		for validator in self.validators:
 			if validator.honeycomb > next_validator.honeycomb:
 				next_validator = validator
 
 		return next_validator
+
+	def refresh_validator_stakes(self):
+		for validator in self.validators:
+			validator.calculate_balance(self.chain)

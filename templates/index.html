@@ -7,9 +7,10 @@
 </head>
 <body>
 
-	<h1>welcome to the hive.</h1>
+	<h1>welcome to the hive, {{ address }}.</h1>
 	<b>make a new transaction:</b>
-	<form method="post" action="/new_transaction">
+	<form method="post" action="/add_transaction">
+		<input type="hidden" name="sender" value={{ address }}><br>
 		<input type="text" name="recipient" placeholder="recipient"><br>
 		<input type="number" name="amount" placeholder="amount"><br>
 		<input type="submit" placeholder="submit">
@@ -39,6 +40,11 @@
 	<b>sync</b>
 	<form method="get" action="/consensus">
 		<input type="submit" placeholder="submit">
+	</form>
+
+	<b>balance</b>
+	<form method="get" action="/balance">
+		<input type="submit" placeholder="balance">
 	</form>
 
 </body>

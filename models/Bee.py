@@ -6,20 +6,21 @@ class Bee:
 		self.address = address
 		self.honeycomb = honeycomb
 		self.key_pair = RSA.generate(2048)
+		self.public_key = self.key_pair.publickey().export_key()
 
 	def generate_key_pair(self):
 		self.key_pair = RSA.generate(2048)
 
-	def calculate_balance(self, blockchain):
+	def calculate_balance(self, chain):
 		self.honeycomb = 0
 
-		for block in blockchain.chain:
+		for block in chain:
 			for transaction in block.transactions:
 				if transaction.sender == self.address:
-					self.decrement_balance(transaction.amount)
+					self.decrement_balance(int(transaction.amount))
 
 				if transaction.recipient == self.address:
-					self.increment_balance(transaction.amount)
+					self.increment_balance(int(transaction.amount))
 
 		if self.honeycomb < 0:
 			self.honeycomb = None
