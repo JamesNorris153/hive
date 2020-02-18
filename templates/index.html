@@ -6,6 +6,7 @@
 	<title>hive</title>
 </head>
 <body>
+
 	<h1>welcome to the hive.</h1>
 	<b>make a new transaction:</b>
 	<form method="post" action="/new_transaction">
@@ -13,14 +14,17 @@
 		<input type="number" name="amount" placeholder="amount"><br>
 		<input type="submit" placeholder="submit">
 	</form>
+
 	<b>mine block using PoW:</b>
 	<form method="get" action="/mine_pow">
 		<input type="submit" name="mine_pow" placeholder="mine">
 	</form>
+
 	<b>mine block using PoS:</b>
 	<form method="get" action="/mine_pos">
 		<input type="submit" name="mine_pos" placeholder="mine">
 	</form>
+
 	<b>display blockchain:</b>
 	<form method="get" action="/get_chain">
 		<input type="submit" name="get_chain" placeholder="see the hive">
@@ -32,6 +36,10 @@
 		<input type="submit" placeholder="submit">
 	</form>
 
+	<b>sync</b>
+	<form method="get" action="/consensus">
+		<input type="submit" placeholder="submit">
+	</form>
 
 </body>
 

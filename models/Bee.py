@@ -5,7 +5,7 @@ class Bee:
 	def __init__(self, address, honeycomb):
 		self.address = address
 		self.honeycomb = honeycomb
-		self.key_pair = None
+		self.key_pair = RSA.generate(2048)
 
 	def generate_key_pair(self):
 		self.key_pair = RSA.generate(2048)

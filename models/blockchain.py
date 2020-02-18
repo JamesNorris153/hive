@@ -13,7 +13,7 @@ class Blockchain:
 		self.create_genesis_block()
 
 	def create_genesis_block(self):
-		genesis_block = Block(0, [], time.time(), "OG", 1)
+		genesis_block = Block(0, [], 0, "OG", 1)
 		genesis_block.hash = genesis_block.compute_hash()
 		self.chain.append(genesis_block)
 
@@ -38,12 +38,15 @@ class Blockchain:
 		previous_hash = self.last_block().compute_hash()
 
 		if previous_hash != block.previous_hash:
+			print(previous_hash)
+			print(block.previous_hash)
+			print("wow")
 			return False
 
 		if not self.validate_proof_of_work(block, proof):
+			print("fuck")
 			return False
 
-		block.hash = proof
 		self.chain.append(block)
 
 		return True
@@ -58,7 +61,6 @@ class Blockchain:
 			return False
 
 		block.signature = str(proof)
-		block.hash = block.compute_hash()
 		self.chain.append(block)
 
 		return True
@@ -92,7 +94,7 @@ class Blockchain:
 		self.add_pow_block(new_block, proof)
 		self.unconfirmed_transactions = []
 
-		return new_block.index
+		return proof, new_block
 
 	def mine_pos(self, bee):
 		if not self.unconfirmed_transactions:
@@ -109,7 +111,7 @@ class Blockchain:
 		self.add_pos_block(new_block, proof)
 		self.unconfirmed_transactions = []
 
-		return new_block.index
+		return proof, new_block
 
 	def get_next_validator(self):
 		next_validator = self.validators[0]

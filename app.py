@@ -1,22 +1,25 @@
 #app.py
 from models.Blockchain import Blockchain
+from models.Block import Block
+from models.Transaction import Transaction
 from models.Bee import Bee
 from flask import Flask, request, render_template
 import requests
 import time
 import json
+import sys
+
 
 transaction_format = ["recipient", "amount"]
 peer_format = ["address"]
 app = Flask(__name__)
 blockchain = Blockchain()
-address = "http://127.0.0.1:8000/"
-print(app.config["SERVER_NAME"])
-bee = Bee(app.config["SERVER_NAME"], 1000)
-bee.generate_key_pair()
+address = "http://127.0.0.1:" + str(sys.argv[3]) + "/"
+bee = Bee(address, 1000)
 blockchain.add_validator(bee)
 posts = []
 peers = set()
+
 
 @app.route("/", methods=["GET"])
 def index():
@@ -44,25 +47,33 @@ def get_chain():
 
 @app.route("/mine_pow", methods=["GET"])
 def mine_pow():
-	result = blockchain.mine_pow()
+	proof, new_block = blockchain.mine_pow()
 
-	if not result:
+	if not proof and new_block:
 		return "No transactions to mine", 412
 
-	return "Block #{} has successfully been mined".format(result), 200
+	print(new_block.compute_hash())
+	propogate_new_block(proof, new_block)
+
+	return "Block #{} has successfully been mined".format(new_block.index), 200
+
 
 @app.route("/mine_pos", methods=["GET"])
 def mine_pos():
-	result = blockchain.mine_pos(bee)
+	proof, new_block = blockchain.mine_pos(bee)
 
-	if not result:
+	if not proof and new_block:
 		return "No transactions to mine", 412
 
-	return "Block #{} has successfully been mined".format(result), 200
+	propogate_new_block(proof, new_block)
+
+	return "Block #{} has successfully been mined".format(new_block.index), 200
+
 
 @app.route("/get_pending_transactions", methods=["GET"])
 def get_pending_transactions():
 	return json.dumps(blockchain.unconfirmed_transactions), 200
+
 
 @app.route("/register_new_peer", methods=["POST"])
 def register_new_peer():
@@ -79,18 +90,30 @@ def register_new_peer():
 
 	return "Successfully added new peers", 200
 
+
 @app.route("/add_block", methods=["POST"])
 def add_block():
-	block_data = request.get_json()
-	new_block = Block(block_data["index"], block_data["transactions"], block_data["timestamp"], block_data["previous_hash"])
+	data = json.loads(request.json)
+	proof = data["proof"]
+	block_data = json.loads(data["block"])
 
-	proof = new_block.compute_hash()
-	added = blockchain.add_block(block, proof)
+	transactions = []
+	for t in block_data["transactions"]:
+		transactions.append(Transaction(t["sender"], t["recipient"], t["amount"], t["timestamp"]))
+
+	new_block = Block(block_data["index"], transactions, block_data["timestamp"], block_data["previous_hash"], block_data["proof_type"], block_data["nonce"])
+
+	if block_data["proof_type"] == "PoW":
+		added = blockchain.add_pow_block(new_block, proof)
+
+	if block_data["proof_type"] == "PoS":
+		added = blockchain.add_pos_block(new_block, proof)
 
 	if not added:
 		return "The block was discarded by the node", 400
 
 	return "Block added to the chain", 201
+
 
 @app.route("/submit", methods=["POST"])
 def submit_transactions():
@@ -105,6 +128,8 @@ def submit_transactions():
 
 	return redirect("/")
 
+
+@app.route("/consensus", methods=["GET"])
 def consensus():
 	global blockchain
 
@@ -126,9 +151,12 @@ def consensus():
 
 	return False
 
-def propogate_new_block():
-	for peer in peers:
-		url = "http://{}/add_block".format(peer)
-		requests.post(url, data=json.dumps(block.__dict__, sort_keys=True))
 
-app.run(debug=True)
+def propogate_new_block(proof, block):
+	for peer in peers:
+		url = "http://{}/add_block".format(peer.address)
+		data = json.dumps({"proof": proof, "block": json.dumps(block.to_dict(), sort_keys=True)})
+		requests.post(url, json=data)
+
+if __name__ == "__main__":
+	app.run(debug=True)
