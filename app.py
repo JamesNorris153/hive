@@ -29,10 +29,18 @@ def add_transaction():
 
 	for field in transaction_format:
 		if not data.get(field):
-			return "Invalid transaction data", 404
+			return "Invalid transaction data", 403
 
-	blockchain.add_transaction(data["sender"], data["recipient"], data["amount"], time.time());
+	if not data.get("timestamp"):
+		data["timestamp"] = time.time()
 
+	transaction = Transaction(data["sender"], data["recipient"], data["amount"], data["timestamp"])
+	added = blockchain.add_transaction(transaction)
+
+	if not added:
+		return "Transaction was discarded by the node", 400
+
+	propogate_new_transaction(transaction)
 	return "Successfully added new transaction", 201
 
 @app.route("/get_chain", methods=["GET"])
@@ -50,7 +58,6 @@ def mine_pow():
 	if not proof and new_block:
 		return "No transactions to mine", 412
 
-	print(new_block.compute_hash())
 	propogate_new_block(proof, new_block)
 
 	return "Block #{} has successfully been mined".format(new_block.index), 200
@@ -85,7 +92,6 @@ def register_new_peer():
 
 	response = requests.get("{}/get_publickey".format(peer_data["address"]))
 	public_key = response.text
-	print(public_key)
 	peer.public_key = public_key
 
 	blockchain.refresh_validator_stakes()
@@ -105,18 +111,18 @@ def add_block():
 	for t in block_data["transactions"]:
 		transactions.append(Transaction(t["sender"], t["recipient"], t["amount"], t["timestamp"]))
 
-	new_block = Block(block_data["index"], transactions, block_data["timestamp"], block_data["previous_hash"], block_data["proof_type"], block_data["nonce"])
+	block = Block(block_data["index"], transactions, block_data["timestamp"], block_data["previous_hash"], block_data["proof_type"], block_data["nonce"])
 
 	if block_data["proof_type"] == "PoW":
-		added = blockchain.add_pow_block(new_block, proof)
+		added = blockchain.add_pow_block(block, proof)
 
 	if block_data["proof_type"] == "PoS":
-		print(block_data["proof_type"])
-		added = blockchain.add_pos_block(new_block, proof)
+		added = blockchain.add_pos_block(block, proof)
 
 	if not added:
 		return "The block was discarded by the node", 400
 
+	propogate_new_block(proof, block)
 	return "Block added to the chain", 201
 
 
@@ -151,7 +157,6 @@ def balance():
 
 @app.route("/get_publickey", methods=["GET"])
 def get_publickey():
-	print(str(bee.key_pair.publickey().export_key()))
 	return str(bee.key_pair.publickey().export_key()), 200
 
 
@@ -162,10 +167,10 @@ def propogate_new_block(proof, block):
 		requests.post(url, json=data)
 
 
-def propogate_new_transaction(proof, transaction):
+def propogate_new_transaction(transaction):
 	for peer in peers:
 		url = "{}/add_transaction".format(peer.address)
-		data = json.dumps(transaction.to_dict())
+		data = json.dumps(transaction.__dict__)
 
 if __name__ == "__main__":
 	app.run(debug=True)

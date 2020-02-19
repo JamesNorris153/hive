@@ -38,16 +38,15 @@ class Blockchain:
 		return bee.key_pair.publickey().export_key()
 
 	def add_pow_block(self, block, proof):
-		previous_hash = self.last_block().compute_hash()
+		last_block = self.last_block()
+		if block.index != (last_block.index + 1):
+			return False
 
+		previous_hash = self.last_block().compute_hash()
 		if previous_hash != block.previous_hash:
-			print(previous_hash)
-			print(block.previous_hash)
-			print("wow")
 			return False
 
 		if not self.validate_proof_of_work(block, proof):
-			print("fuck")
 			return False
 
 		self.chain.append(block)
@@ -55,11 +54,13 @@ class Blockchain:
 		return True
 
 	def add_pos_block(self, block, proof):
+		last_block = self.last_block()
+		if block.index != (last_block.index + 1):
+			return False
+
 		previous_hash = self.last_block().compute_hash()
 
 		if previous_hash != block.previous_hash:
-			print(previous_hash)
-			print(block.previous_hash)
 			return False
 
 		if not self.validate_proof_of_stake(proof):
@@ -78,18 +79,20 @@ class Blockchain:
 		return str(proof) == str(next_validator.public_key)
 
 	def add_transaction(self, transaction):
-		self.unconfirmed_transactions.append(transaction)
+		for unconfirmed_transaction in self.unconfirmed_transactions:
+			if transaction.timestamp == unconfirmed_transaction.timestamp:
+				return False
 
-	def add_transaction(self, sender, recipient, amount, time):
-		transaction = Transaction(sender, recipient, amount, time)
 		self.unconfirmed_transactions.append(transaction)
+		return True
+
 
 	def add_validator(self, bee):
 		self.validators.append(bee)
 
 	def mine_pow(self):
 		if not self.unconfirmed_transactions:
-			return False
+			return False, None
 
 		last_block = self.last_block()
 		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_type="PoW", previous_hash=last_block.compute_hash())
@@ -103,7 +106,7 @@ class Blockchain:
 
 	def mine_pos(self, bee):
 		if not self.unconfirmed_transactions:
-			return False
+			return False, None
 
 		last_block = self.last_block()
 		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_type="PoS", previous_hash=last_block.compute_hash())
