@@ -11,10 +11,10 @@ class Bee:
 	def generate_key_pair(self):
 		self.key_pair = RSA.generate(2048)
 
-	def calculate_balance(self, chain):
+	def calculate_balance(self, chain, index):
 		self.honeycomb = 0
 
-		for block in chain:
+		for block in chain[0:index]:
 			for transaction in block.transactions:
 				if transaction.sender == self.address:
 					self.decrement_balance(int(transaction.amount))

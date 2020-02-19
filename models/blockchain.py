@@ -63,7 +63,7 @@ class Blockchain:
 		if previous_hash != block.previous_hash:
 			return False
 
-		if not self.validate_proof_of_stake(proof):
+		if not self.validate_proof_of_stake(block, proof):
 			return False
 
 		block.signature = str(proof)
@@ -74,9 +74,9 @@ class Blockchain:
 	def validate_proof_of_work(self, block, proof):
 		return (proof.startswith('0' * Blockchain.difficulty) and proof == block.compute_hash())
 
-	def validate_proof_of_stake(self, proof):
-		next_validator = self.get_next_validator()
-		return str(proof) == str(next_validator.public_key)
+	def validate_proof_of_stake(self, block, proof):
+		next_validator = self.get_next_validator(block.index)
+		return proof == next_validator.public_key
 
 	def add_transaction(self, transaction):
 		for unconfirmed_transaction in self.unconfirmed_transactions:
@@ -111,7 +111,7 @@ class Blockchain:
 		last_block = self.last_block()
 		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_type="PoS", previous_hash=last_block.compute_hash())
 
-		next_validator = self.get_next_validator()
+		next_validator = self.get_next_validator(new_block.index)
 
 		if next_validator != bee:
 			return False, None
@@ -122,8 +122,8 @@ class Blockchain:
 
 		return proof, new_block
 
-	def get_next_validator(self):
-		self.refresh_validator_stakes()
+	def get_next_validator(self, index):
+		self.calculate_validator_stakes(index)
 		next_validator = self.validators[0]
 
 		for validator in self.validators:
@@ -132,6 +132,32 @@ class Blockchain:
 
 		return next_validator
 
-	def refresh_validator_stakes(self):
+	def calculate_validator_stakes(self, index):
 		for validator in self.validators:
-			validator.calculate_balance(self.chain)
+			validator.calculate_balance(self.chain, index)
+
+	def check_validity(self):
+		for block in self.chain:
+			if block.proof_type == "PoW":
+				proof = block.compute_hash()
+				if not self.validate_proof_of_work(block, proof):
+					return False
+
+			if block.proof_type == "PoS":
+				proof = block.signature
+				if not self.validate_proof_of_stake(block, proof):
+					return False
+
+		return True
+
+	def parse_json(self, chain):
+		self.chain = []
+
+		for block_data in chain:
+			transactions = []
+			for transaction in block_data["transactions"]:
+				block.transactions.append(Transaction(transaction["sender"], transaction["recipient"], transaction["amount"], transaction["timestamp"]))
+
+			block = Block(block_data["index"], transactions, block_data["timestamp"], block_data["previous_hash"], block_data["proof_type"], block_data["signature"], block_data["nonce"])
+
+			self.chain.append(block)

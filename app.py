@@ -94,7 +94,7 @@ def register_new_peer():
 	public_key = response.text
 	peer.public_key = public_key
 
-	blockchain.refresh_validator_stakes()
+	blockchain.calculate_validator_stakes(blockchain.last_block().index)
 	peers.add(peer)
 	blockchain.add_validator(peer)
 
@@ -128,8 +128,6 @@ def add_block():
 
 @app.route("/consensus", methods=["GET"])
 def consensus():
-	global blockchain
-
 	longest_chain = None
 	current_length = len(blockchain.chain)
 
@@ -138,7 +136,11 @@ def consensus():
 		length = response.json()["length"]
 		chain = response.json()["chain"]
 
-		if length > current_length and blockchain.check_validity(chain):
+		peer_blockchain = Blockchain()
+		peer_blockchain.parse_json(chain)
+		peer_blockchain.validators = blockchain.validators
+
+		if length > current_length and blockchain.check_validity():
 			current_length = length
 			longest_chain = chain
 
@@ -149,9 +151,9 @@ def consensus():
 	return False
 
 
-@app.route("/balance", methods=["GET"])
-def balance():
-	bee.calculate_balance(blockchain.chain)
+@app.route("/get_balance", methods=["GET"])
+def get_balance():
+	bee.calculate_balance(blockchain.chain, blockchain.last_block().index)
 	return "Your balance is {}".format(bee.honeycomb), 200
 
 
@@ -171,6 +173,7 @@ def propogate_new_transaction(transaction):
 	for peer in peers:
 		url = "{}/add_transaction".format(peer.address)
 		data = json.dumps(transaction.__dict__)
+
 
 if __name__ == "__main__":
 	app.run(debug=True)
