@@ -72,6 +72,7 @@ class Blockchain:
 		return True
 
 	def validate_proof_of_work(self, block, proof):
+		print(block.compute_hash())
 		return (proof.startswith('0' * Blockchain.difficulty) and proof == block.compute_hash())
 
 	def validate_proof_of_stake(self, block, proof):
@@ -92,7 +93,7 @@ class Blockchain:
 
 	def mine_pow(self):
 		if not self.unconfirmed_transactions:
-			return False, None
+			return None, None
 
 		last_block = self.last_block()
 		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_type="PoW", previous_hash=last_block.compute_hash())
@@ -106,7 +107,7 @@ class Blockchain:
 
 	def mine_pos(self, bee):
 		if not self.unconfirmed_transactions:
-			return False, None
+			return None, None
 
 		last_block = self.last_block()
 		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_type="PoS", previous_hash=last_block.compute_hash())
@@ -141,9 +142,11 @@ class Blockchain:
 			if block.proof_type == "PoW":
 				proof = block.compute_hash()
 				if not self.validate_proof_of_work(block, proof):
+					print("what")
 					return False
 
 			if block.proof_type == "PoS":
+				print("there")
 				proof = block.signature
 				if not self.validate_proof_of_stake(block, proof):
 					return False
@@ -156,7 +159,7 @@ class Blockchain:
 		for block_data in chain:
 			transactions = []
 			for transaction in block_data["transactions"]:
-				block.transactions.append(Transaction(transaction["sender"], transaction["recipient"], transaction["amount"], transaction["timestamp"]))
+				transactions.append(Transaction(transaction["sender"], transaction["recipient"], transaction["amount"], transaction["timestamp"]))
 
 			block = Block(block_data["index"], transactions, block_data["timestamp"], block_data["previous_hash"], block_data["proof_type"], block_data["signature"], block_data["nonce"])
 

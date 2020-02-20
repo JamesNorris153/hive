@@ -9,7 +9,6 @@ import time
 import json
 import sys
 
-
 transaction_format = ["sender", "recipient", "amount"]
 peer_format = ["address"]
 app = Flask(__name__)
@@ -94,7 +93,7 @@ def register_new_peer():
 	public_key = response.text
 	peer.public_key = public_key
 
-	blockchain.calculate_validator_stakes(blockchain.last_block().index)
+	blockchain.calculate_validator_stakes(blockchain.last_block().index + 1)
 	peers.add(peer)
 	blockchain.add_validator(peer)
 
@@ -111,7 +110,7 @@ def add_block():
 	for t in block_data["transactions"]:
 		transactions.append(Transaction(t["sender"], t["recipient"], t["amount"], t["timestamp"]))
 
-	block = Block(block_data["index"], transactions, block_data["timestamp"], block_data["previous_hash"], block_data["proof_type"], block_data["nonce"])
+	block = Block(block_data["index"], transactions, block_data["timestamp"], block_data["previous_hash"], block_data["proof_type"], nonce=block_data["nonce"])
 
 	if block_data["proof_type"] == "PoW":
 		added = blockchain.add_pow_block(block, proof)
@@ -128,11 +127,13 @@ def add_block():
 
 @app.route("/consensus", methods=["GET"])
 def consensus():
+	global blockchain
+
 	longest_chain = None
 	current_length = len(blockchain.chain)
 
 	for peer in peers:
-		response = request.get("{}/get_chain".format(peer))
+		response = requests.get("{}/get_chain".format(peer.address))
 		length = response.json()["length"]
 		chain = response.json()["chain"]
 
@@ -140,20 +141,20 @@ def consensus():
 		peer_blockchain.parse_json(chain)
 		peer_blockchain.validators = blockchain.validators
 
-		if length > current_length and blockchain.check_validity():
+		if length > current_length and peer_blockchain.check_validity():
 			current_length = length
-			longest_chain = chain
+			longest_chain = peer_blockchain.chain
 
 	if longest_chain:
-		blockchain = longest_chain
-		return True
+		blockchain.chain = longest_chain
+		return "Blockchain has been updated", 201
 
-	return False
+	return "Current blockchain is up to date", 301
 
 
 @app.route("/get_balance", methods=["GET"])
 def get_balance():
-	bee.calculate_balance(blockchain.chain, blockchain.last_block().index)
+	bee.calculate_balance(blockchain.chain, blockchain.last_block().index + 1)
 	return "Your balance is {}".format(bee.honeycomb), 200
 
 
