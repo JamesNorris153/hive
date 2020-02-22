@@ -4,6 +4,7 @@ from models.Block import Block
 from models.Transaction import Transaction
 from models.Bee import Bee
 from flask import Flask, request, render_template, redirect
+
 import requests
 import time
 import json
@@ -16,7 +17,6 @@ blockchain = Blockchain()
 address = "http://127.0.0.1:" + str(sys.argv[3])
 bee = Bee(address, 0)
 blockchain.add_validator(bee)
-bee.calculate_balance(blockchain.chain, blockchain.last_block().index + 1)
 transactions = []
 peers = set()
 
@@ -24,7 +24,7 @@ peers = set()
 def index():
 	update_transactions()
 
-	return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions), 200
+	return render_template("index.html", address=address, balance=get_balance(), transactions=transactions), 200
 
 @app.route("/add_transaction", methods=["POST"])
 def add_transaction():
@@ -34,7 +34,7 @@ def add_transaction():
 
 	for field in transaction_format:
 		if not data.get(field):
-			return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions, message="Invalid transaction data"), 406
+			return render_template("index.html", address=address, balance=get_balance(), transactions=transactions, message="Invalid transaction data"), 406
 
 	if not data.get("timestamp"):
 		data["timestamp"] = time.time()
@@ -43,10 +43,10 @@ def add_transaction():
 	added = blockchain.add_transaction(transaction)
 
 	if not added:
-		return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions, message="Transaction already recorded"), 409
+		return render_template("index.html", address=address, balance=get_balance(), transactions=transactions, message="Transaction already recorded"), 409
 
 	propogate_new_transaction(transaction)
-	return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions, message="Transaction recorded"), 201
+	return render_template("index.html", address=address, balance=get_balance(), transactions=transactions, message="Transaction recorded"), 201
 
 @app.route("/get_chain", methods=["GET"])
 def get_chain():
@@ -61,12 +61,12 @@ def mine_pow():
 	proof, new_block = blockchain.mine_pow(bee)
 
 	if not proof and new_block:
-		return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions, message="No transactions to mine"), 412
+		return render_template("index.html", address=address, balance=get_balance(), transactions=transactions, message="No transactions to mine"), 412
 
 	update_transactions()
 	propogate_new_block(proof, new_block)
 
-	return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions, message="Block #{} successfully mined".format(new_block.index)), 201
+	return render_template("index.html", address=address, balance=get_balance(), transactions=transactions, message="Block #{} successfully mined".format(new_block.index)), 201
 
 
 @app.route("/mine_pos", methods=["GET"])
@@ -74,12 +74,12 @@ def mine_pos():
 	proof, new_block = blockchain.mine_pos(bee)
 
 	if not new_block:
-		return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions, message="No transactions to mine"), 412
+		return render_template("index.html", address=address, balance=get_balance(), transactions=transactions, message="No transactions to mine"), 412
 
 	update_transactions()
 	propogate_new_block(proof, new_block)
 
-	return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions, message="Block #{} successfully mined".format(new_block.index)), 201
+	return render_template("index.html", address=address, balance=get_balance(), transactions=transactions, message="Block #{} successfully mined".format(new_block.index)), 201
 
 
 @app.route("/get_pending_transactions", methods=["GET"])
@@ -93,7 +93,7 @@ def register_new_peer():
 
 	for field in peer_format:
 		if not peer_data.get(field):
-			return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions, message="Invalid node data"), 412
+			return render_template("index.html", address=address, balance=get_balance(), transactions=transactions, message="Invalid node data"), 412
 
 	peer = Bee(peer_data["address"], None)
 
@@ -105,7 +105,7 @@ def register_new_peer():
 	peers.add(peer)
 	blockchain.add_validator(peer)
 
-	return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions, message="Peer succesfully added"), 201
+	return render_template("index.html", address=address, balance=get_balance(), transactions=transactions, message="Peer succesfully added"), 201
 
 
 @app.route("/add_block", methods=["POST"])
@@ -127,12 +127,12 @@ def add_block():
 		added = blockchain.add_pos_block(block, proof)
 
 	if not added:
-		return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions, message="Invalid block"), 400
+		return render_template("index.html", address=address, balance=get_balance(), transactions=transactions, message="Invalid block"), 400
 
 	update_transactions()
 	propogate_new_block(proof, block)
-	
-	return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions, message="Block successfully added"), 201
+
+	return render_template("index.html", address=address, balance=get_balance(), transactions=transactions, message="Block successfully added"), 201
 
 
 @app.route("/consensus", methods=["GET"])
@@ -158,9 +158,9 @@ def consensus():
 	if longest_chain:
 		blockchain.chain = longest_chain
 		update_transactions()
-		return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions, message="Blockchain updated"), 201
+		return render_template("index.html", address=address, balance=get_balance(), transactions=transactions, message="Blockchain updated"), 201
 
-	return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions, message="Blockchain already up to date"), 409
+	return render_template("index.html", address=address, balance=get_balance(), transactions=transactions, message="Blockchain already up to date"), 409
 
 
 @app.route("/get_balance", methods=["GET"])

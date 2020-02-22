@@ -16,12 +16,12 @@ for i in range(total):
 		r1 = requests.post(new_node + "/register_new_peer", data={"address": node})
 		r2 = requests.post(node + "/register_new_peer", data={"address": new_node})
 
-		if r1.status_code == 200:
+		if r1.status_code == 201:
 			print("node {0} successfully registered with node {1}".format(new_node, node))
 		else:
 			print("node {0} could not connect with node {1}".format(new_node, node))
 
-		if r2.status_code == 200:
+		if r2.status_code == 201:
 			print("node {0} successfully registered with node {1}".format(node, new_node))
 		else:
 			print("node {0} could not connect with node {1}".format(node, new_node))
