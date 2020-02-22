@@ -3,7 +3,7 @@ from models.Blockchain import Blockchain
 from models.Block import Block
 from models.Transaction import Transaction
 from models.Bee import Bee
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, redirect
 import requests
 import time
 import json
@@ -16,11 +16,15 @@ blockchain = Blockchain()
 address = "http://127.0.0.1:" + str(sys.argv[3])
 bee = Bee(address, 0)
 blockchain.add_validator(bee)
+bee.calculate_balance(blockchain.chain, blockchain.last_block().index + 1)
+transactions = []
 peers = set()
 
 @app.route("/", methods=["GET"])
 def index():
-	return render_template("index.html", address = address)
+	update_transactions()
+
+	return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions), 200
 
 @app.route("/add_transaction", methods=["POST"])
 def add_transaction():
@@ -30,7 +34,7 @@ def add_transaction():
 
 	for field in transaction_format:
 		if not data.get(field):
-			return "Invalid transaction data", 403
+			return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions, message="Invalid transaction data"), 406
 
 	if not data.get("timestamp"):
 		data["timestamp"] = time.time()
@@ -39,10 +43,10 @@ def add_transaction():
 	added = blockchain.add_transaction(transaction)
 
 	if not added:
-		return "Transaction was discarded by the node", 400
+		return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions, message="Transaction already recorded"), 409
 
 	propogate_new_transaction(transaction)
-	return "Successfully added new transaction", 201
+	return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions, message="Transaction recorded"), 201
 
 @app.route("/get_chain", methods=["GET"])
 def get_chain():
@@ -57,11 +61,12 @@ def mine_pow():
 	proof, new_block = blockchain.mine_pow(bee)
 
 	if not proof and new_block:
-		return "No transactions to mine", 412
+		return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions, message="No transactions to mine"), 412
 
+	update_transactions()
 	propogate_new_block(proof, new_block)
 
-	return "Block #{} has successfully been mined".format(new_block.index), 200
+	return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions, message="Block #{} successfully mined".format(new_block.index)), 201
 
 
 @app.route("/mine_pos", methods=["GET"])
@@ -69,11 +74,12 @@ def mine_pos():
 	proof, new_block = blockchain.mine_pos(bee)
 
 	if not new_block:
-		return "Unable to mine block", 412
+		return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions, message="No transactions to mine"), 412
 
+	update_transactions()
 	propogate_new_block(proof, new_block)
 
-	return "Block #{} has successfully been mined".format(new_block.index), 200
+	return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions, message="Block #{} successfully mined".format(new_block.index)), 201
 
 
 @app.route("/get_pending_transactions", methods=["GET"])
@@ -87,7 +93,7 @@ def register_new_peer():
 
 	for field in peer_format:
 		if not peer_data.get(field):
-			return "Invalid node data", 404
+			return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions, message="Invalid node data"), 412
 
 	peer = Bee(peer_data["address"], None)
 
@@ -99,7 +105,7 @@ def register_new_peer():
 	peers.add(peer)
 	blockchain.add_validator(peer)
 
-	return "Successfully added new peers", 200
+	return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions, message="Peer succesfully added"), 201
 
 
 @app.route("/add_block", methods=["POST"])
@@ -121,10 +127,12 @@ def add_block():
 		added = blockchain.add_pos_block(block, proof)
 
 	if not added:
-		return "The block was discarded by the node", 400
+		return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions, message="Invalid block"), 400
 
+	update_transactions()
 	propogate_new_block(proof, block)
-	return "Block added to the chain", 201
+	
+	return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions, message="Block successfully added"), 201
 
 
 @app.route("/consensus", methods=["GET"])
@@ -149,15 +157,16 @@ def consensus():
 
 	if longest_chain:
 		blockchain.chain = longest_chain
-		return "Blockchain has been updated", 201
+		update_transactions()
+		return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions, message="Blockchain updated"), 201
 
-	return "Current blockchain is up to date", 301
+	return render_template("index.html", address=address, balance=bee.honeycomb, transactions=transactions, message="Blockchain already up to date"), 409
 
 
 @app.route("/get_balance", methods=["GET"])
 def get_balance():
 	bee.calculate_balance(blockchain.chain, blockchain.last_block().index + 1)
-	return "Your balance is {}".format(bee.honeycomb), 200
+	return bee.honeycomb, 200
 
 
 @app.route("/get_publickey", methods=["GET"])
@@ -181,6 +190,21 @@ def propogate_new_transaction(transaction):
 		url = "{}/add_transaction".format(peer.address)
 		data = json.dumps(transaction.__dict__)
 		requests.post(url, data=data)
+
+def update_transactions():
+	global transactions
+
+	chain, status_code = get_chain()
+	chain_data = json.loads(chain)
+
+	transactions = []
+	for block in chain_data["chain"]:
+		for transaction in block["transactions"]:
+			transaction["block_index"] = block["index"]
+			transaction["previous_hash"] = block["previous_hash"]
+			transaction["validator"] = block["validator"]
+			transaction["timestamp"] = time.ctime(transaction["timestamp"])
+			transactions.append(transaction)
 
 if __name__ == "__main__":
 	app.run(debug=True)

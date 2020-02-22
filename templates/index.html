@@ -6,51 +6,75 @@
 	<title>hive</title>
 </head>
 <body>
+	<div id="title" class="center">
+		<h1>welcome to the hive,</h1>
+		<h1>{{ address }}.</h1>
+	</div>
 
-	<h1>welcome to the hive, {{ address }}.</h1>
-	<b>make a new transaction:</b>
-	<form method="post" action="/add_transaction">
-		<input type="hidden" name="sender" value={{ address }}><br>
-		<input type="text" name="recipient" placeholder="recipient"><br>
-		<input type="number" name="amount" placeholder="amount"><br>
-		<input type="submit" placeholder="submit">
-	</form>
+	<div id="message" class="center">
+		<p>{{ message }}</p>
+	</div>
 
-	<b>mine block using PoW:</b>
-	<form method="get" action="/mine_pow">
-		<input type="submit" name="mine_pow" placeholder="mine">
-	</form>
+	<div class="center">
+		<p>your balance:</p>
+		<p>{{ balance }}</p>
+	</div>
 
-	<b>mine block using PoS:</b>
-	<form method="get" action="/mine_pos">
-		<input type="submit" name="mine_pos" placeholder="mine">
-	</form>
+	<div class="center">
+		<p>new transaction:</p>
+		<form method="post" action="/add_transaction">
+			<input type="hidden" name="sender" value={{ address }}><br>
+			<input type="text" name="recipient" placeholder="recipient"><br>
+			<input type="number" name="amount" placeholder="amount"><br>
+			<input type="submit" placeholder="submit">
+		</form>
+	</div>
 
-	<b>display blockchain:</b>
-	<form method="get" action="/get_chain">
-		<input type="submit" name="get_chain" placeholder="see the hive">
-	</form>
+	<div class="center">
+		<form method="get" action="/mine_pow">
+			<input type="submit" name="mine_pow" value="mine block (proof of work)">
+		</form>
 
-	<b>add a new node:</b>
-	<form method="post" action="/register_new_peer">
-		<input type="text" name="address" placeholder="address"><br>
-		<input type="submit" placeholder="submit">
-	</form>
+		<form method="get" action="/mine_pos">
+			<input type="submit" name="mine_pos" value="mine block (proof of stake)">
+		</form>
+	</div>
 
-	<b>sync</b>
-	<form method="get" action="/consensus">
-		<input type="submit" placeholder="submit">
-	</form>
+	<div class="center">
+		<p>add a new node:</p>
+		<form method="post" action="/register_new_peer">
+			<input type="text" name="address" placeholder="address"><br>
+			<input type="submit" name="register_new_peer" value="register">
+		</form>
+	</div>
 
-	<b>balance</b>
-	<form method="get" action="/get_balance">
-		<input type="submit" placeholder="balance">
-	</form>
-
-	<b>peers</b>
-	<form method="get" action="/get_peers">
-		<input type="submit" placeholder="peers">
-	</form>
+	<div id="blockchain" class="center">
+		<p>hive activity</p>
+		<form method="get" action="/consensus">
+			<input type="submit" name="update" value="update">
+		</form>
+		<table style="width:100%">
+			<tr>
+				<th>block</th>
+				<th>previous hash</th>
+				<th>sender</th>
+				<th>recipient</th>
+				<th>amount</th>
+				<th>validator</th>
+				<th>timestamp</th>
+			</tr>
+			{% for transaction in transactions %}
+			<tr>
+				<td>{{ transaction.block_index }}</td>
+				<td>{{ transaction.previous_hash }}</td>
+				<td>{{ transaction.sender }}</td>
+				<td>{{ transaction.recipient }}</td>
+				<td>{{ transaction.amount }}</td>
+				<td>{{ transaction.validator }}</td>
+				<td>{{ transaction.timestamp }}</td>
+			{% endfor %}
+		</table>
+	</div>
 
 </body>
 

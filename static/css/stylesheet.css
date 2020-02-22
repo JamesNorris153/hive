@@ -1,3 +1,28 @@
 body {
 	font-family: monospace;
+	color: black;
+}
+
+p {
+	font-size: 20px;
+}
+
+.center {
+	text-align: center;
+	padding: 10px;
+}
+
+* {
+	background-color: yellow;
+}
+
+input {
+	width: 100%;
+	padding: 12px 20px;
+	margin: 8px 0px;
+	box-sizing: border-box;
+}
+
+#message {
+	color: red;
 }
