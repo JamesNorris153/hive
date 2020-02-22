@@ -25,6 +25,8 @@ def index():
 @app.route("/add_transaction", methods=["POST"])
 def add_transaction():
 	data = request.form.to_dict()
+	if not data:
+		data = json.loads(request.data)
 
 	for field in transaction_format:
 		if not data.get(field):
@@ -66,8 +68,8 @@ def mine_pow():
 def mine_pos():
 	proof, new_block = blockchain.mine_pos(bee)
 
-	if not proof and new_block:
-		return "No transactions to mine", 412
+	if not new_block:
+		return "Unable to mine block", 412
 
 	propogate_new_block(proof, new_block)
 
@@ -163,6 +165,10 @@ def get_publickey():
 	return str(bee.key_pair.publickey().export_key()), 200
 
 
+@app.route("/get_peers", methods=["GET"])
+def get_peers():
+	return str(blockchain.validators), 200
+
 def propogate_new_block(proof, block):
 	for peer in peers:
 		url = "{}/add_block".format(peer.address)
@@ -174,7 +180,7 @@ def propogate_new_transaction(transaction):
 	for peer in peers:
 		url = "{}/add_transaction".format(peer.address)
 		data = json.dumps(transaction.__dict__)
-
+		requests.post(url, data=data)
 
 if __name__ == "__main__":
 	app.run(debug=True)
