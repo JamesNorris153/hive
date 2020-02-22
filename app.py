@@ -52,7 +52,7 @@ def get_chain():
 
 @app.route("/mine_pow", methods=["GET"])
 def mine_pow():
-	proof, new_block = blockchain.mine_pow()
+	proof, new_block = blockchain.mine_pow(bee)
 
 	if not proof and new_block:
 		return "No transactions to mine", 412
@@ -110,7 +110,7 @@ def add_block():
 	for t in block_data["transactions"]:
 		transactions.append(Transaction(t["sender"], t["recipient"], t["amount"], t["timestamp"]))
 
-	block = Block(block_data["index"], transactions, block_data["timestamp"], block_data["previous_hash"], block_data["proof_type"], nonce=block_data["nonce"])
+	block = Block(block_data["index"], transactions, block_data["timestamp"], block_data["previous_hash"], block_data["proof_type"], block_data["validator"], nonce=block_data["nonce"])
 
 	if block_data["proof_type"] == "PoW":
 		added = blockchain.add_pow_block(block, proof)

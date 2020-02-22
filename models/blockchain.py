@@ -1,5 +1,6 @@
 from .Block import Block
 from .Transaction import Transaction
+from .Bee import Bee
 import time
 
 class Blockchain:
@@ -16,7 +17,7 @@ class Blockchain:
 		transactions = []
 		transactions.append(Transaction("god", "http://127.0.0.1:8000", 1000, 1))
 		transactions.append(Transaction("god", "http://127.0.0.1:8001", 500, 2))
-		genesis_block = Block(0, transactions, 0, "OG", 1)
+		genesis_block = Block(0, transactions, 0, "OG", None, "god")
 		genesis_block.hash = genesis_block.compute_hash()
 		self.chain.append(genesis_block)
 
@@ -72,7 +73,6 @@ class Blockchain:
 		return True
 
 	def validate_proof_of_work(self, block, proof):
-		print(block.compute_hash())
 		return (proof.startswith('0' * Blockchain.difficulty) and proof == block.compute_hash())
 
 	def validate_proof_of_stake(self, block, proof):
@@ -89,14 +89,18 @@ class Blockchain:
 
 
 	def add_validator(self, bee):
+		for validator in self.validators:
+			if bee.address == validator.address:
+				return False
+
 		self.validators.append(bee)
 
-	def mine_pow(self):
+	def mine_pow(self, bee):
 		if not self.unconfirmed_transactions:
 			return None, None
 
 		last_block = self.last_block()
-		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_type="PoW", previous_hash=last_block.compute_hash())
+		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_type="PoW", validator=bee.address, previous_hash=last_block.compute_hash())
 
 		proof = self.proof_of_work(new_block)
 
@@ -110,12 +114,12 @@ class Blockchain:
 			return None, None
 
 		last_block = self.last_block()
-		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_type="PoS", previous_hash=last_block.compute_hash())
+		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_type="PoS", validator=bee.address, previous_hash=last_block.compute_hash())
 
 		next_validator = self.get_next_validator(new_block.index)
 
 		if next_validator != bee:
-			return False, None
+			return None, None
 
 		proof = self.proof_of_stake(new_block, bee)
 		self.add_pos_block(new_block, proof)
@@ -139,14 +143,18 @@ class Blockchain:
 
 	def check_validity(self):
 		for block in self.chain:
+			sender = Bee(block.validator, None)
+			recipient = Bee(block.validator, None)
+
+			self.add_validator(sender)
+			self.add_validator(recipient)
+
 			if block.proof_type == "PoW":
 				proof = block.compute_hash()
 				if not self.validate_proof_of_work(block, proof):
-					print("what")
 					return False
 
 			if block.proof_type == "PoS":
-				print("there")
 				proof = block.signature
 				if not self.validate_proof_of_stake(block, proof):
 					return False
@@ -161,6 +169,6 @@ class Blockchain:
 			for transaction in block_data["transactions"]:
 				transactions.append(Transaction(transaction["sender"], transaction["recipient"], transaction["amount"], transaction["timestamp"]))
 
-			block = Block(block_data["index"], transactions, block_data["timestamp"], block_data["previous_hash"], block_data["proof_type"], block_data["signature"], block_data["nonce"])
+			block = Block(block_data["index"], transactions, block_data["timestamp"], block_data["previous_hash"], block_data["proof_type"], block_data["validator"], block_data["signature"], block_data["nonce"])
 
 			self.chain.append(block)
