@@ -1,10 +1,10 @@
 import sys
 import requests
 
-if len(sys.argv) != 2:
-	total = 10
-else:
+if len(sys.argv) == 2:
 	total = int(sys.argv[1])
+else:
+	total = 5
 
 nodes = []
 

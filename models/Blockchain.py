@@ -15,8 +15,16 @@ class Blockchain:
 
 	def create_genesis_block(self):
 		transactions = []
-		transactions.append(Transaction("god", "http://127.0.0.1:8000", 1000, 1))
-		transactions.append(Transaction("god", "http://127.0.0.1:8001", 500, 2))
+		transactions.append(Transaction("god", "http://127.0.0.1:8000", 2000, 1))
+		transactions.append(Transaction("god", "http://127.0.0.1:8001", 1000, 2))
+		transactions.append(Transaction("god", "http://127.0.0.1:8002", 1000, 3))
+		transactions.append(Transaction("god", "http://127.0.0.1:8003", 1000, 4))
+		transactions.append(Transaction("god", "http://127.0.0.1:8004", 1000, 5))
+		transactions.append(Transaction("god", "http://127.0.0.1:8005", 1000, 6))
+		transactions.append(Transaction("god", "http://127.0.0.1:8006", 1000, 7))
+		transactions.append(Transaction("god", "http://127.0.0.1:8007", 1000, 8))
+		transactions.append(Transaction("god", "http://127.0.0.1:8008", 1000, 9))
+		transactions.append(Transaction("god", "http://127.0.0.1:8009", 1000, 10))
 		genesis_block = Block(0, transactions, 0, "OG", None, "god")
 		genesis_block.hash = genesis_block.compute_hash()
 		self.chain.append(genesis_block)
