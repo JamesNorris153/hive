@@ -26,6 +26,7 @@ class Bee:
 			self.honeycomb = None
 			return False
 
+		return self.honeycomb
 
 	def increment_balance(self, amount):
 		self.honeycomb += amount

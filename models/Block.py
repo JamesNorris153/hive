@@ -2,13 +2,14 @@ import json
 from hashlib import sha256
 
 class Block:
-	def __init__(self, index, transactions, timestamp, previous_hash, proof_type, validator, signature=None, nonce=0):
+	def __init__(self, index, transactions, timestamp, previous_hash, proof_type, validator, stake, signature=None, nonce=0):
 		self.index = index
 		self.transactions = transactions
 		self.timestamp = timestamp
 		self.previous_hash = previous_hash
 		self.proof_type = proof_type
 		self.validator = validator
+		self.stake = stake
 		self.signature = signature
 		self.nonce = nonce
 
@@ -31,4 +32,5 @@ class Block:
 		block_dict["validator"] = self.validator
 		block_dict["signature"] = self.signature
 		block_dict["nonce"] = self.nonce
+		block_dict["stake"] = self.stake
 		return block_dict

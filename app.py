@@ -82,6 +82,19 @@ def mine_pos():
 	return render_template("index.html", address=address, balance=get_balance(), transactions=transactions, message="Block #{} successfully mined".format(new_block.index)), 201
 
 
+@app.route("/mine_pos_v2", methods=["GET"])
+def mine_pos_v2():
+	proof, new_block = blockchain.mine_pos_v2(bee)
+
+	if not new_block:
+		return render_template("index.html", address=address, balance=get_balance(), transactions=transactions, message="No transactions to mine"), 412
+
+	update_transactions()
+	propogate_new_block(proof, new_block)
+
+	return render_template("index.html", address=address, balance=get_balance(), transactions=transactions, message="Block #{} successfully mined".format(new_block.index)), 201
+
+
 @app.route("/get_pending_transactions", methods=["GET"])
 def get_pending_transactions():
 	return json.dumps(blockchain.unconfirmed_transactions), 200
@@ -118,13 +131,16 @@ def add_block():
 	for t in block_data["transactions"]:
 		transactions.append(Transaction(t["sender"], t["recipient"], t["amount"], t["timestamp"]))
 
-	block = Block(block_data["index"], transactions, block_data["timestamp"], block_data["previous_hash"], block_data["proof_type"], block_data["validator"], nonce=block_data["nonce"])
+	block = Block(block_data["index"], transactions, block_data["timestamp"], block_data["previous_hash"], block_data["proof_type"], block_data["validator"], block_data["stake"], nonce=block_data["nonce"])
 
 	if block_data["proof_type"] == "PoW":
 		added = blockchain.add_pow_block(block, proof)
 
 	if block_data["proof_type"] == "PoS":
 		added = blockchain.add_pos_block(block, proof)
+
+	if block_data["proof_type"] == "PoS2":
+		added = blockchain.add_pos_block_v2(block, proof)
 
 	if not added:
 		return render_template("index.html", address=address, balance=get_balance(), transactions=transactions, message="Invalid block"), 400
