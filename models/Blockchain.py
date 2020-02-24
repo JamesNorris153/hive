@@ -27,7 +27,7 @@ class Blockchain:
 		transactions.append(Transaction("god", "http://127.0.0.1:8007", 1000, 7))
 		transactions.append(Transaction("god", "http://127.0.0.1:8008", 1000, 8))
 		transactions.append(Transaction("god", "http://127.0.0.1:8009", 1000, 9))
-		genesis_block = Block(0, transactions, time.time(), "OG", None, "god", 0)
+		genesis_block = Block(0, transactions, 1582578648.950698, "OG", None, "god", 0)
 		self.chain.append(genesis_block)
 
 	def last_block(self):

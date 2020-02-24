@@ -19,6 +19,7 @@ bee = Bee(address, 0)
 blockchain.add_validator(bee)
 transactions = []
 peers = set()
+print(time.time())
 
 @app.route("/", methods=["GET"])
 def index():
@@ -131,7 +132,7 @@ def add_block():
 	for t in block_data["transactions"]:
 		transactions.append(Transaction(t["sender"], t["recipient"], t["amount"], t["timestamp"]))
 
-	block = Block(block_data["index"], transactions, block_data["timestamp"], block_data["previous_hash"], block_data["proof_type"], block_data["validator"], block_data["stake"], nonce=block_data["nonce"])
+	block = Block(block_data["index"], transactions, block_data["timestamp"], block_data["previous_hash"], block_data["proof_type"], block_data["validator"], block_data["stake"], nonce=block_data["nonce"], signature=block_data["signature"])
 
 	if block_data["proof_type"] == "PoW":
 		added = blockchain.add_pow_block(block, proof)
