@@ -1,25 +1,26 @@
 #app.py
-from models.Blockchain import Blockchain
-from models.Block import Block
-from models.Transaction import Transaction
-from models.Bee import Bee
 from flask import Flask, request, render_template, redirect
+from models.Bee import Bee
+from models.Block import Block
+from models.Blockchain import Blockchain
+from models.Transaction import Transaction
 
-import requests
-import time
 import json
+import requests
 import sys
+import time
 
+app = Flask(__name__)
 transaction_format = ["sender", "recipient", "amount"]
 peer_format = ["address"]
-app = Flask(__name__)
+transactions = []
+peers = set()
+
 blockchain = Blockchain()
 address = "http://127.0.0.1:" + str(sys.argv[3])
 bee = Bee(address, 0)
 blockchain.add_validator(bee)
-transactions = []
-peers = set()
-print(time.time())
+
 
 @app.route("/", methods=["GET"])
 def index():
@@ -27,9 +28,11 @@ def index():
 
 	return render_template("index.html", address=address, balance=get_balance(), transactions=transactions), 200
 
+
 @app.route("/add_transaction", methods=["POST"])
 def add_transaction():
 	data = request.form.to_dict()
+
 	if not data:
 		data = json.loads(request.data)
 
@@ -40,22 +43,32 @@ def add_transaction():
 	if not data.get("timestamp"):
 		data["timestamp"] = time.time()
 
-	transaction = Transaction(data["sender"], data["recipient"], data["amount"], data["timestamp"])
+	transaction = Transaction(sender=data["sender"], recipient=data["recipient"], amount=data["amount"], timestamp=data["timestamp"])
+
+	valid = blockchain.verify_transaction(transaction)
+
+	if not valid:
+		return render_template("index.html", address=address, balance=get_balance(), transactions=transactions, message="Transaction sender does not have required balance"), 403
+
 	added = blockchain.add_transaction(transaction)
 
 	if not added:
 		return render_template("index.html", address=address, balance=get_balance(), transactions=transactions, message="Transaction already recorded"), 409
 
 	propogate_new_transaction(transaction)
+
 	return render_template("index.html", address=address, balance=get_balance(), transactions=transactions, message="Transaction recorded"), 201
+
 
 @app.route("/get_chain", methods=["GET"])
 def get_chain():
 	chain = []
+
 	for block in blockchain.chain:
 		chain.append(block.to_dict())
 
 	return json.dumps({"length": len(chain), "chain": chain}), 200
+
 
 @app.route("/mine_pow", methods=["GET"])
 def mine_pow():
@@ -75,7 +88,20 @@ def mine_pos():
 	proof, new_block = blockchain.mine_pos(bee)
 
 	if not new_block:
-		return render_template("index.html", address=address, balance=get_balance(), transactions=transactions, message="No transactions to mine"), 412
+		return render_template(
+			"index.html",
+			address=address,
+			balance=get_balance(),
+			transactions=transactions,
+			message="No transactions to mine"), 412
+
+	if not proof:
+		return render_template(
+			"index.html",
+			address=address,
+			balance=get_balance(),
+			transactions=transactions,
+			message="No transactions to mine"), 412
 
 	update_transactions()
 	propogate_new_block(proof, new_block)
@@ -83,9 +109,10 @@ def mine_pos():
 	return render_template("index.html", address=address, balance=get_balance(), transactions=transactions, message="Block #{} successfully mined".format(new_block.index)), 201
 
 
-@app.route("/mine_pos_v2", methods=["GET"])
+@app.route("/mine_pos_v2", methods=["POST"])
 def mine_pos_v2():
-	proof, new_block = blockchain.mine_pos_v2(bee)
+	data = request.form.to_dict()
+	proof, new_block = blockchain.mine_pos_v2(bee, data["stake"])
 
 	if not new_block:
 		return render_template("index.html", address=address, balance=get_balance(), transactions=transactions, message="No transactions to mine"), 412
@@ -132,7 +159,7 @@ def add_block():
 	for t in block_data["transactions"]:
 		transactions.append(Transaction(t["sender"], t["recipient"], t["amount"], t["timestamp"]))
 
-	block = Block(block_data["index"], transactions, block_data["timestamp"], block_data["previous_hash"], block_data["proof_type"], block_data["validator"], block_data["stake"], nonce=block_data["nonce"], signature=block_data["signature"])
+	block = Block(index=block_data["index"], transactions=transactions, timestamp=block_data["timestamp"], previous_hash=block_data["previous_hash"], proof_type=block_data["proof_type"], validator=block_data["validator"], stake=block_data["stake"], nonce=block_data["nonce"], signature=block_data["signature"])
 
 	if block_data["proof_type"] == "PoW":
 		added = blockchain.add_pow_block(block, proof)
@@ -195,6 +222,7 @@ def get_publickey():
 def get_peers():
 	return str(blockchain.validators), 200
 
+
 def propogate_new_block(proof, block):
 	for peer in peers:
 		url = "{}/add_block".format(peer.address)
@@ -208,6 +236,7 @@ def propogate_new_transaction(transaction):
 		data = json.dumps(transaction.__dict__)
 		requests.post(url, data=data)
 
+
 def update_transactions():
 	global transactions
 
@@ -220,6 +249,7 @@ def update_transactions():
 			transaction["block_index"] = block["index"]
 			transaction["previous_hash"] = block["previous_hash"]
 			transaction["validator"] = block["validator"]
+			transaction["stake"] = block["stake"]
 			transaction["timestamp"] = time.ctime(transaction["timestamp"])
 			transactions.append(transaction)
 

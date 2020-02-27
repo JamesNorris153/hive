@@ -18,7 +18,7 @@ class Block:
 		return sha256(block_string.encode()).hexdigest()
 
 	def sign_block(self, validator):
-		self.signature = validator.key_pair.publickey().export_key()
+		self.signature = str(validator.key_pair.publickey().export_key())
 
 	def to_dict(self):
 		block_dict = dict()

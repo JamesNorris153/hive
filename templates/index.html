@@ -40,7 +40,8 @@
 			<input type="submit" name="mine_pos" value="mine block (proof of stake)">
 		</form>
 
-		<form method="get" action="/mine_pos_v2">
+		<form method="post" action="/mine_pos_v2">
+			<input type="number" name="stake" placeholder="stake"><br>
 			<input type="submit" name="mine_pos_v2" value="mine block (proof of stake v2)">
 		</form>
 	</div>
@@ -66,6 +67,7 @@
 				<th>recipient</th>
 				<th>amount</th>
 				<th>validator</th>
+				<th>stake</th>
 				<th>timestamp</th>
 			</tr>
 			{% for transaction in transactions %}
@@ -76,6 +78,7 @@
 				<td>{{ transaction.recipient }}</td>
 				<td>{{ transaction.amount }}</td>
 				<td>{{ transaction.validator }}</td>
+				<td>{{ transaction.stake }}</td>
 				<td>{{ transaction.timestamp }}</td>
 			{% endfor %}
 		</table>

@@ -48,7 +48,6 @@ class Blockchain:
 		return bee.key_pair.publickey().export_key()
 
 	def proof_of_stake_v2(self, block, bee):
-		block.stake = bee.calculate_balance(self.chain, block.index)
 		block.validator = bee.address
 		block.signature = block.sign_block(bee)
 
@@ -69,6 +68,7 @@ class Blockchain:
 			return False
 
 		self.chain.append(block)
+		self.unconfirmed_transactions = []
 
 		return True
 
@@ -79,34 +79,30 @@ class Blockchain:
 		if not self.validate_proof_of_stake(block, proof):
 			return False
 
-		block.signature = str(proof)
 		self.chain.append(block)
+		self.unconfirmed_transactions = []
 
 		return True
 
 	def add_pos_block_v2(self, block, proof):
 		if not self.validate_block(block):
-			print("invalid block")
 			return False
 
-		if not self.validate_proof_of_stake_v2(block, proof):
-			print("invalid pos 2")
+		if not self.validate_proof_of_stake_v2(block, self.last_block(), proof):
 			return False
 
 		self.chain.append(block)
+		self.unconfirmed_transactions = []
 
 		return True
 
 	def validate_block(self, block):
 		last_block = self.last_block()
 		if block.index != (last_block.index + 1):
-			print("invalid index")
 			return False
 
 		previous_hash = self.last_block().compute_hash()
-		print(previous_hash)
 		if previous_hash != block.previous_hash:
-			print("invalid hash")
 			return False
 
 		return True
@@ -118,11 +114,11 @@ class Blockchain:
 		next_validator = self.get_next_validator(block.index)
 		return proof == next_validator.public_key
 
-	def validate_proof_of_stake_v2(self, block, proof):
+	def validate_proof_of_stake_v2(self, block, previous_block, proof):
 		if block.timestamp > time.time():
 			return False
 
-		time_passed = block.timestamp - self.last_block().timestamp
+		time_passed = block.timestamp - previous_block.timestamp
 		validator = Bee(block.validator, 0)
 
 		if validator.calculate_balance(self.chain, block.index) < block.stake:
@@ -158,12 +154,10 @@ class Blockchain:
 			return None, None
 
 		last_block = self.last_block()
-		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_type="PoW", validator=bee.address, previous_hash=last_block.compute_hash())
+		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_type="PoW", validator=bee.address, previous_hash=last_block.compute_hash(), stake=0)
 
 		proof = self.proof_of_work(new_block)
-
 		self.add_pow_block(new_block, proof)
-		self.unconfirmed_transactions = []
 
 		return proof, new_block
 
@@ -172,34 +166,30 @@ class Blockchain:
 			return None, None
 
 		last_block = self.last_block()
-		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_type="PoS", validator=bee.address, previous_hash=last_block.compute_hash())
+		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_type="PoS", validator=bee.address, previous_hash=last_block.compute_hash(), stake=0)
 
 		next_validator = self.get_next_validator(new_block.index)
 
 		if next_validator != bee:
-			return None, None
+			return None, new_block
 
 		proof = self.proof_of_stake(new_block, bee)
 		self.add_pos_block(new_block, proof)
-		self.unconfirmed_transactions = []
 
 		return proof, new_block
 
-	def mine_pos_v2(self, bee):
+	def mine_pos_v2(self, bee, stake):
 		if not self.unconfirmed_transactions:
 			return None, None
 
 		last_block = self.last_block()
-		new_block = Block(index=last_block.index + 1, transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_type="PoS2", validator=bee.address, previous_hash=last_block.compute_hash(), stake=bee.calculate_balance(self.chain, last_block.index))
 
-		print(last_block.compute_hash())
+		new_block = Block(index=last_block.index + 1, transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_type="PoS2", validator=bee.address, previous_hash=last_block.compute_hash(), stake=int(stake))
 
 		proof = self.proof_of_stake_v2(new_block, bee)
 		self.add_pos_block_v2(new_block, proof)
-		self.unconfirmed_transactions = []
 
 		return proof, new_block
-
 
 	def get_next_validator(self, index):
 		self.calculate_validator_stakes(index)
@@ -215,13 +205,21 @@ class Blockchain:
 		for validator in self.validators:
 			validator.calculate_balance(self.chain, index)
 
-	def check_validity(self):
-		for block in self.chain:
-			sender = Bee(block.validator, None)
-			recipient = Bee(block.validator, None)
+	def verify_transaction(self, transaction):
+		sender = Bee(transaction.sender, None)
+		sender_balance = sender.calculate_balance(self.chain, self.last_block().index + 1)
 
-			self.add_validator(sender)
-			self.add_validator(recipient)
+		if sender_balance < int(transaction.amount):
+			return False
+
+		return True
+
+	def check_validity(self):
+		previous_block = None
+		for block in self.chain:
+			validator = Bee(block.validator, None)
+
+			self.add_validator(validator)
 
 			if block.proof_type == "PoW":
 				proof = block.compute_hash()
@@ -235,8 +233,10 @@ class Blockchain:
 
 			if block.proof_type == "PoS2":
 				proof = block.compute_hash()
-				if not self.validate_proof_of_stake_v2(block, proof):
+				if not self.validate_proof_of_stake_v2(block, previous_block, proof):
 					return False
+
+			previous_block = block
 
 		return True
 
@@ -248,6 +248,6 @@ class Blockchain:
 			for transaction in block_data["transactions"]:
 				transactions.append(Transaction(transaction["sender"], transaction["recipient"], transaction["amount"], transaction["timestamp"]))
 
-			block = Block(block_data["index"], transactions, block_data["timestamp"], block_data["previous_hash"], block_data["proof_type"], block_data["validator"], block_data["signature"], block_data["nonce"])
+			block = Block(index=block_data["index"], transactions=transactions, timestamp=block_data["timestamp"], previous_hash=block_data["previous_hash"], proof_type=block_data["proof_type"], validator=block_data["validator"], stake=block_data["stake"], signature=block_data["signature"], nonce=block_data["nonce"])
 
 			self.chain.append(block)
