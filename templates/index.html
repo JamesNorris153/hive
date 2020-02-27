@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 	<meta charset="UTF-8">
 	<link rel="stylesheet" type="text/css" href="/static/css/stylesheet.css">
 	<title>hive</title>
 </head>
+
 <body>
 	<div id="title" class="center">
 		<h1>welcome to the hive,</h1>
@@ -15,43 +17,75 @@
 		<p>{{ message }}</p>
 	</div>
 
-	<div class="center">
-		<p>your balance:</p>
-		<p>{{ balance }}</p>
+	<div class="row">
+
+		<div class="column_half">
+			<div id="balance" class="center">
+				<p>your balance:</p>
+				<p>{{ balance }}</p>
+			</div>
+		</div>
+
+		<div class="column_half">
+			<div id="stakes" class="center">
+				<p>your stakes</p>
+				<table style="width:100%">
+					<tr>
+						<th>amount</th>
+						<th>block #</th>
+					</tr>
+					{% for stake in stakes %}
+					<tr>
+						<td>{{ stake.amount }}</td>
+						<td>{{ stake.index }}</td>
+					</tr>
+					{% endfor %}
+				</table>
+			</div>
+		</div>
+
 	</div>
 
-	<div class="center">
-		<p>new transaction:</p>
-		<form method="post" action="/add_transaction">
-			<input type="hidden" name="sender" value={{ address }}><br>
-			<input type="text" name="recipient" placeholder="recipient"><br>
-			<input type="number" name="amount" placeholder="amount"><br>
-			<input type="submit" placeholder="submit">
-		</form>
-	</div>
+	<div class="row">
+		<div class="column_third">
+			<div class="center">
+				<p>new transaction:</p>
+				<form method="post" action="/add_transaction">
+					<input type="hidden" name="sender" value={{ address }}><br>
+					<input type="text" name="recipient" placeholder="recipient"><br>
+					<input type="number" name="amount" placeholder="amount"><br>
+					<input type="submit" placeholder="submit">
+				</form>
+			</div>
+		</div>
 
-	<div class="center">
-		<p>mine a block:</p>
-		<form method="get" action="/mine_pow">
-			<input type="submit" name="mine_pow" value="mine block (proof of work)">
-		</form>
+		<div class="column_third">
+			<div class="center">
+				<p>mine a block:</p>
+				<form method="get" action="/mine_pow">
+					<input type="submit" name="mine_pow" value="mine block (proof of work)">
+				</form>
 
-		<form method="get" action="/mine_pos">
-			<input type="submit" name="mine_pos" value="mine block (proof of stake)">
-		</form>
+				<form method="get" action="/mine_pos">
+					<input type="submit" name="mine_pos" value="mine block (proof of stake)">
+				</form>
 
-		<form method="post" action="/mine_pos_v2">
-			<input type="number" name="stake" placeholder="stake"><br>
-			<input type="submit" name="mine_pos_v2" value="mine block (proof of stake v2)">
-		</form>
-	</div>
+				<form method="post" action="/mine_pos_v2">
+					<input type="number" name="stake" placeholder="stake"><br>
+					<input type="submit" name="mine_pos_v2" value="mine block (proof of stake v2)">
+				</form>
+			</div>
+		</div>
 
-	<div class="center">
-		<p>add a new node:</p>
-		<form method="post" action="/register_new_peer">
-			<input type="text" name="address" placeholder="address"><br>
-			<input type="submit" name="register_new_peer" value="register">
-		</form>
+		<div class="column_third">
+			<div class="center">
+				<p>add a new node:</p>
+				<form method="post" action="/register_new_peer">
+					<input type="text" name="address" placeholder="address"><br>
+					<input type="submit" name="register_new_peer" value="register">
+				</form>
+			</div>
+		</div>
 	</div>
 
 	<div id="blockchain" class="center">
@@ -80,6 +114,7 @@
 				<td>{{ transaction.validator }}</td>
 				<td>{{ transaction.stake }}</td>
 				<td>{{ transaction.timestamp }}</td>
+			</tr>
 			{% endfor %}
 		</table>
 	</div>

@@ -1,6 +1,6 @@
 body {
 	font-family: monospace;
-	color: black;
+	color: white;
 }
 
 p {
@@ -13,16 +13,48 @@ p {
 }
 
 * {
-	background-color: yellow;
+	background-color: #515151;
 }
 
 input {
 	width: 100%;
 	padding: 12px 20px;
 	margin: 8px 0px;
+	font-size: 15px;
+	text-align: center;
+	font-family: monospace;
+	background-color: #F8DF04;
 	box-sizing: border-box;
+}
+
+input[type=number] {
+	background-color: #3F3F3B;
+	border-color: #F8DF04;
+	color: white;
+}
+
+input[type=text] {
+	background-color: #3F3F3F;
+	border-color: #F8DF04;
+	color: white;
+}
+
+td {
+	font-size: 15px;
 }
 
 #message {
 	color: red;
+}
+
+.row {
+	display: flex;
+}
+
+.column_half {
+	flex: 50%;
+}
+
+.column_third {
+	flex: 33%;
 }

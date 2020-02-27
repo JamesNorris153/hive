@@ -7,12 +7,13 @@ from hashlib import sha256
 class Blockchain:
 	difficulty = 2
 	timeslot = 10
-	threshold = "0000000999999999999999999999999999999999999999999999999999999999"
+	threshold = "0000999999999999999999999999999999999999999999999999999999999999"
 
 	def __init__(self):
 		self.unconfirmed_transactions = []
 		self.chain = []
 		self.validators = []
+		self.stake = 0
 		self.create_genesis_block()
 
 	def create_genesis_block(self):
@@ -68,6 +69,7 @@ class Blockchain:
 			return False
 
 		self.chain.append(block)
+		self.stake += block.stake
 		self.unconfirmed_transactions = []
 
 		return True
@@ -80,6 +82,7 @@ class Blockchain:
 			return False
 
 		self.chain.append(block)
+		self.stake += block.stake
 		self.unconfirmed_transactions = []
 
 		return True
@@ -92,6 +95,7 @@ class Blockchain:
 			return False
 
 		self.chain.append(block)
+		self.stake += block.stake
 		self.unconfirmed_transactions = []
 
 		return True
@@ -120,8 +124,9 @@ class Blockchain:
 
 		time_passed = block.timestamp - previous_block.timestamp
 		validator = Bee(block.validator, 0)
+		honeycomb, stakes = validator.calculate_balance(self.chain, block.index)
 
-		if validator.calculate_balance(self.chain, block.index) < block.stake:
+		if honeycomb < block.stake:
 			return False
 
 		if proof != block.compute_hash():
@@ -153,6 +158,10 @@ class Blockchain:
 		if not self.unconfirmed_transactions:
 			return None, None
 
+		for transaction in self.unconfirmed_transactions:
+			if not self.verify_transaction(transaction):
+				self.unconfirmed_transactions.remove(transaction)
+
 		last_block = self.last_block()
 		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_type="PoW", validator=bee.address, previous_hash=last_block.compute_hash(), stake=0)
 
@@ -164,6 +173,10 @@ class Blockchain:
 	def mine_pos(self, bee):
 		if not self.unconfirmed_transactions:
 			return None, None
+
+		for transaction in self.unconfirmed_transactions:
+			if not self.verify_transaction(transaction):
+				self.unconfirmed_transactions.remove(transaction)
 
 		last_block = self.last_block()
 		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_type="PoS", validator=bee.address, previous_hash=last_block.compute_hash(), stake=0)
@@ -182,8 +195,11 @@ class Blockchain:
 		if not self.unconfirmed_transactions:
 			return None, None
 
-		last_block = self.last_block()
+		for transaction in self.unconfirmed_transactions:
+			if not self.verify_transaction(transaction):
+				self.unconfirmed_transactions.remove(transaction)
 
+		last_block = self.last_block()
 		new_block = Block(index=last_block.index + 1, transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_type="PoS2", validator=bee.address, previous_hash=last_block.compute_hash(), stake=int(stake))
 
 		proof = self.proof_of_stake_v2(new_block, bee)
@@ -207,9 +223,9 @@ class Blockchain:
 
 	def verify_transaction(self, transaction):
 		sender = Bee(transaction.sender, None)
-		sender_balance = sender.calculate_balance(self.chain, self.last_block().index + 1)
+		honeycomb, stakes = sender.calculate_balance(self.chain, self.last_block().index + 1)
 
-		if sender_balance < int(transaction.amount):
+		if honeycomb < int(transaction.amount):
 			return False
 
 		return True
@@ -251,3 +267,4 @@ class Blockchain:
 			block = Block(index=block_data["index"], transactions=transactions, timestamp=block_data["timestamp"], previous_hash=block_data["previous_hash"], proof_type=block_data["proof_type"], validator=block_data["validator"], stake=block_data["stake"], signature=block_data["signature"], nonce=block_data["nonce"])
 
 			self.chain.append(block)
+			self.stake += block.stake

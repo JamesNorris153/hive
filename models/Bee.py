@@ -5,6 +5,7 @@ class Bee:
 	def __init__(self, address, honeycomb):
 		self.address = address
 		self.honeycomb = honeycomb
+		self.stakes = []
 		self.key_pair = RSA.generate(2048)
 		self.public_key = self.key_pair.publickey().export_key()
 
@@ -13,8 +14,18 @@ class Bee:
 
 	def calculate_balance(self, chain, index):
 		self.honeycomb = 0
+		self.stakes = []
 
 		for block in chain[0:index]:
+			if block.validator == self.address:
+				self.add_stake(block.stake, block.index)
+				self.decrement_balance(block.stake)
+
+			for stake in self.stakes:
+				if stake[1] + 2 <= block.index:
+					self.remove_stake(stake)
+					self.increment_balance(stake[0])
+
 			for transaction in block.transactions:
 				if transaction.sender == self.address:
 					self.decrement_balance(int(transaction.amount))
@@ -26,13 +37,16 @@ class Bee:
 			self.honeycomb = None
 			return False
 
-		return self.honeycomb
+		return self.honeycomb, self.stakes
 
 	def increment_balance(self, amount):
 		self.honeycomb += amount
 
 	def decrement_balance(self, amount):
-		if self.honeycomb < amount:
-			return False
-
 		self.honeycomb -= amount
+
+	def add_stake(self, amount, height):
+		self.stakes.append((amount, height))
+
+	def remove_stake(self, stake):
+		self.stakes.remove(stake)
