@@ -45,7 +45,9 @@ class Blockchain:
 		return computed_hash
 
 	def proof_of_stake(self, block, bee):
+		block.validator = bee.address
 		block.sign_block(bee)
+
 		return bee.key_pair.publickey().export_key()
 
 	def proof_of_stake_v2(self, block, bee):
@@ -78,7 +80,7 @@ class Blockchain:
 		if not self.validate_block(block):
 			return False
 
-		if not self.validate_proof_of_stake(block, proof):
+		if not self.validate_proof_of_stake(block, self.last_block(), proof):
 			return False
 
 		self.chain.append(block)
@@ -114,9 +116,17 @@ class Blockchain:
 	def validate_proof_of_work(self, block, proof):
 		return (proof.startswith('0' * Blockchain.difficulty) and proof == block.compute_hash())
 
-	def validate_proof_of_stake(self, block, proof):
-		next_validator = self.get_next_validator(block.index)
-		return proof == next_validator.public_key
+	def validate_proof_of_stake(self, block, previous_block, proof):
+		if block.timestamp > time.time():
+			return False
+
+		validator = Bee(block.validator, 0)
+		honeycomb, stake = validator.calculate_balance(self.chain, block.index)
+
+		if honeycomb < block.stake:
+			return False
+
+		return True
 
 	def validate_proof_of_stake_v2(self, block, previous_block, proof):
 		if block.timestamp > time.time():
@@ -153,10 +163,13 @@ class Blockchain:
 				return False
 
 		self.validators.append(bee)
+		return True
 
 	def mine_pow(self, bee):
 		if not self.unconfirmed_transactions:
 			return None, None
+
+		self.calculate_validator_stakes(self.last_block().index + 1)
 
 		for transaction in self.unconfirmed_transactions:
 			if not self.verify_transaction(transaction):
@@ -170,21 +183,23 @@ class Blockchain:
 
 		return proof, new_block
 
-	def mine_pos(self, bee):
+	def mine_pos(self, bee, stake):
 		if not self.unconfirmed_transactions:
 			return None, None
+
+		self.calculate_validator_stakes(self.last_block().index + 1)
 
 		for transaction in self.unconfirmed_transactions:
 			if not self.verify_transaction(transaction):
 				self.unconfirmed_transactions.remove(transaction)
 
 		last_block = self.last_block()
-		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_type="PoS", validator=bee.address, previous_hash=last_block.compute_hash(), stake=0)
+		new_block = Block(index=last_block.index + 1,  transactions=self.unconfirmed_transactions, timestamp=time.time(), proof_type="PoS", validator=bee.address, previous_hash=last_block.compute_hash(), stake=int(stake))
 
-		next_validator = self.get_next_validator(new_block.index)
+		#next_validator = self.get_next_validator(new_block.index)
 
-		if next_validator != bee:
-			return None, new_block
+		#if next_validator != bee:
+		#	return None, new_block
 
 		proof = self.proof_of_stake(new_block, bee)
 		self.add_pos_block(new_block, proof)
@@ -194,6 +209,8 @@ class Blockchain:
 	def mine_pos_v2(self, bee, stake):
 		if not self.unconfirmed_transactions:
 			return None, None
+
+		self.calculate_validator_stakes(self.last_block().index + 1)
 
 		for transaction in self.unconfirmed_transactions:
 			if not self.verify_transaction(transaction):
@@ -223,9 +240,10 @@ class Blockchain:
 
 	def verify_transaction(self, transaction):
 		sender = Bee(transaction.sender, None)
-		honeycomb, stakes = sender.calculate_balance(self.chain, self.last_block().index + 1)
+		if not self.add_validator(sender):
+			sender.calculate_balance(self.chain, self.last_block().index + 1)
 
-		if honeycomb < int(transaction.amount):
+		if sender.honeycomb < int(transaction.amount):
 			return False
 
 		return True
@@ -244,7 +262,7 @@ class Blockchain:
 
 			if block.proof_type == "PoS":
 				proof = block.signature
-				if not self.validate_proof_of_stake(block, proof):
+				if not self.validate_proof_of_stake(block, previous_block, proof):
 					return False
 
 			if block.proof_type == "PoS2":

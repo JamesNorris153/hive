@@ -122,9 +122,10 @@ def mine_pow():
 		message="Block #{} successfully mined".format(new_block.index)), 201
 
 
-@app.route("/mine_pos", methods=["GET"])
+@app.route("/mine_pos", methods=["POST"])
 def mine_pos():
-	proof, new_block = blockchain.mine_pos(bee)
+	data = request.form.to_dict()
+	proof, new_block = blockchain.mine_pos(bee, data["stake"])
 
 	if not new_block:
 		return render_template(
