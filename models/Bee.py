@@ -17,9 +17,10 @@ class Bee:
 		self.stakes = []
 
 		for block in chain[0:index]:
-			if block.validator == self.address:
-				self.add_stake(block.stake, block.index)
-				self.decrement_balance(block.stake)
+			if block.proof_type == "PoS2":
+				if block.validator == self.address:
+					self.add_stake(block.stake, block.index)
+					self.decrement_balance(block.stake)
 
 			for stake in self.stakes:
 				if stake[1] + 2 <= block.index:

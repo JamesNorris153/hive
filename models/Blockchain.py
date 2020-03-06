@@ -18,17 +18,12 @@ class Blockchain:
 
 	def create_genesis_block(self):
 		transactions = []
-		transactions.append(Transaction("god", "http://127.0.0.1:8000", 2000, 0))
-		transactions.append(Transaction("god", "http://127.0.0.1:8001", 1000, 1))
-		transactions.append(Transaction("god", "http://127.0.0.1:8002", 1000, 2))
-		transactions.append(Transaction("god", "http://127.0.0.1:8003", 1000, 3))
-		transactions.append(Transaction("god", "http://127.0.0.1:8004", 1000, 4))
-		transactions.append(Transaction("god", "http://127.0.0.1:8005", 1000, 5))
-		transactions.append(Transaction("god", "http://127.0.0.1:8006", 1000, 6))
-		transactions.append(Transaction("god", "http://127.0.0.1:8007", 1000, 7))
-		transactions.append(Transaction("god", "http://127.0.0.1:8008", 1000, 8))
-		transactions.append(Transaction("god", "http://127.0.0.1:8009", 1000, 9))
-		genesis_block = Block(0, transactions, 1582578648.950698, "OG", None, "god", 0)
+		transactions.append(Transaction("james", "http://127.0.0.1:8000", 1000, 0))
+		transactions.append(Transaction("james", "http://127.0.0.1:8001", 1000, 1))
+		transactions.append(Transaction("james", "http://127.0.0.1:8002", 1000, 2))
+		transactions.append(Transaction("james", "http://127.0.0.1:8003", 1000, 3))
+		transactions.append(Transaction("james", "http://127.0.0.1:8004", 1000, 4))
+		genesis_block = Block(0, transactions, 1582578648.950698, "OG", None, "james", 0)
 		self.chain.append(genesis_block)
 
 	def last_block(self):
@@ -48,11 +43,23 @@ class Blockchain:
 		block.validator = bee.address
 		block.sign_block(bee)
 
+		validator = Bee(block.validator, 0)
+		honeycomb, stakes = validator.calculate_balance(self.chain, block.index)
+
+		if honeycomb < block.stake:
+			return False
+
 		return bee.key_pair.publickey().export_key()
 
 	def proof_of_stake_v2(self, block, bee):
 		block.validator = bee.address
-		block.signature = block.sign_block(bee)
+		block.sign_block(bee)
+
+		validator = Bee(block.validator, 0)
+		honeycomb, stakes = validator.calculate_balance(self.chain, block.index)
+
+		if honeycomb < block.stake:
+			return False
 
 		time_passed = block.timestamp - self.last_block().timestamp
 		computed_hash = block.compute_hash()
@@ -121,7 +128,7 @@ class Blockchain:
 			return False
 
 		validator = Bee(block.validator, 0)
-		honeycomb, stake = validator.calculate_balance(self.chain, block.index)
+		honeycomb, stakes = validator.calculate_balance(self.chain, block.index)
 
 		if honeycomb < block.stake:
 			return False

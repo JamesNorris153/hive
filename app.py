@@ -60,10 +60,10 @@ def add_transaction():
 		amount=data["amount"],
 		timestamp=data["timestamp"])
 
-	#valid = blockchain.verify_transaction(transaction)
+	valid = blockchain.verify_transaction(transaction)
 
-	#if not valid:
-	#	return render_template("index.html", address=address, balance=get_balance(), transactions=transactions, message="Transaction sender does not have required balance"), 403
+	if not valid:
+		return render_template("index.html", address=address, balance=get_balance(), transactions=transactions, message="Transaction sender does not have required balance"), 403
 
 	added = blockchain.add_transaction(transaction)
 
@@ -143,7 +143,7 @@ def mine_pos():
 			balance=get_balance(),
 			stakes=get_stakes(),
 			transactions=transactions,
-			message="No transactions to mine"), 412
+			message="Not enough balance to stake"), 412
 
 	update_transactions()
 	propogate_new_block(proof, new_block)
@@ -170,6 +170,15 @@ def mine_pos_v2():
 			stakes=get_stakes(),
 			transactions=transactions,
 			message="No transactions to mine"), 412
+
+	if not proof:
+		return render_template(
+			"index.html",
+			address=address,
+			balance=get_balance(),
+			stakes=get_stakes(),
+			transactions=transactions,
+			message="Not enough balance to stake"), 412
 
 	update_transactions()
 	propogate_new_block(proof, new_block)
