@@ -143,7 +143,7 @@ def mine_pos():
 			balance=get_balance(),
 			stakes=get_stakes(),
 			transactions=transactions,
-			message="Not enough balance to stake"), 412
+			message="No transactions to mine"), 412
 
 	update_transactions()
 	propogate_new_block(proof, new_block)
@@ -170,15 +170,6 @@ def mine_pos_v2():
 			stakes=get_stakes(),
 			transactions=transactions,
 			message="No transactions to mine"), 412
-
-	if not proof:
-		return render_template(
-			"index.html",
-			address=address,
-			balance=get_balance(),
-			stakes=get_stakes(),
-			transactions=transactions,
-			message="Not enough balance to stake"), 412
 
 	update_transactions()
 	propogate_new_block(proof, new_block)
