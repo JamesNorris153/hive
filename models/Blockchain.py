@@ -195,12 +195,12 @@ class Blockchain:
 		selected nodes.
 		"""
 		transactions = []
-		transactions.append(Transaction("james", "http://127.0.0.1:8000", 1000, 0))
-		transactions.append(Transaction("james", "http://127.0.0.1:8001", 1000, 1))
-		transactions.append(Transaction("james", "http://127.0.0.1:8002", 1000, 2))
-		transactions.append(Transaction("james", "http://127.0.0.1:8003", 1000, 3))
-		transactions.append(Transaction("james", "http://127.0.0.1:8004", 1000, 4))
-		
+		transactions.append(Transaction(1000, "http://127.0.0.1:8000", "james", 0))
+		transactions.append(Transaction(1000, "http://127.0.0.1:8001", "james", 1))
+		transactions.append(Transaction(1000, "http://127.0.0.1:8002", "james", 2))
+		transactions.append(Transaction(1000, "http://127.0.0.1:8003", "james", 3))
+		transactions.append(Transaction(1000, "http://127.0.0.1:8004", "james", 4))
+
 		genesis_block = Block(
 			index=0,
 			previous_hash=0,
@@ -353,12 +353,14 @@ class Blockchain:
 		for block_data in chain:
 			transactions = []
 			for transaction in block_data["transactions"]:
-				transactions.append(Transaction(
-					transaction["sender"],
-					transaction["recipient"],
-					transaction["amount"],
-					transaction["timestamp"]
-				))
+				transactions.append(
+					Transaction(
+						amount=transaction["amount"],
+						recipient=transaction["recipient"],
+						sender=transaction["sender"],
+						timestamp=transaction["timestamp"]
+					)
+				)
 
 			block = Block(
 				index=block_data["index"],

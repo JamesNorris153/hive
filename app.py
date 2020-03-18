@@ -57,15 +57,22 @@ def add_transaction():
 		data["timestamp"] = time.time()
 
 	transaction = Transaction(
-		sender=data["sender"],
-		recipient=data["recipient"],
 		amount=data["amount"],
-		timestamp=data["timestamp"])
+		recipient=data["recipient"],
+		sender=data["sender"],
+		timestamp=data["timestamp"]
+	)
 
 	valid = blockchain.verify_transaction(transaction)
 
 	if not valid:
-		return render_template("index.html", address=address, balance=get_balance(), transactions=transactions, message="Transaction sender does not have required balance"), 403
+		return render_template(
+			"index.html",
+			address=address,
+			balance=get_balance(),
+			transactions=transactions,
+			message="Transaction sender does not have required balance"
+		), 403
 
 	added = blockchain.add_transaction(transaction)
 
@@ -230,12 +237,15 @@ def add_block():
 	block_data = json.loads(data["block"])
 
 	transactions = []
-	for t in block_data["transactions"]:
-		transactions.append(Transaction(
-			t["sender"],
-			t["recipient"],
-			t["amount"],
-			t["timestamp"]))
+	for transaction in block_data["transactions"]:
+		transactions.append(
+			Transaction(
+				amount=transaction["amount"],
+				recipient=transaction["recipient"],
+				sender=transaction["sender"],
+				timestamp=transaction["timestamp"]
+			)
+		)
 
 	block = Block(
 		index=block_data["index"],
