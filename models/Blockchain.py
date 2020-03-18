@@ -1,8 +1,8 @@
-from .Block import Block
-from .Transaction import Transaction
-from .Bee import Bee
 import time
+from .Bee import Bee
+from .Block import Block
 from hashlib import sha256
+from .Transaction import Transaction
 
 class Blockchain:
 	""" Blockchain class
@@ -14,10 +14,11 @@ class Blockchain:
 	blocks.
 
 	vars:
-	chain - ordered list of all blocks
-	stake - the total stake placed on the blockchain
-	unconfirmed_transactions - list of transactions to be mined into a block
-	validators - list of bee's that can mine on the blockchain
+	chain - (list:models.Block) ordered list of all blocks
+	stake - (integer) the total stake placed on the blockchain
+	unconfirmed_transactions - (list:models.Transaction) list of transactions to be mined
+	into a block
+	validators - (list:models.Bee) list of bee's that can mine on the blockchain
 
 	methods:
 	add_pow_block(block, proof) - adds a proof of work block to the chain
@@ -199,7 +200,20 @@ class Blockchain:
 		transactions.append(Transaction("james", "http://127.0.0.1:8002", 1000, 2))
 		transactions.append(Transaction("james", "http://127.0.0.1:8003", 1000, 3))
 		transactions.append(Transaction("james", "http://127.0.0.1:8004", 1000, 4))
-		genesis_block = Block(0, transactions, 1582578648.950698, "OG", None, "james", 0)
+		
+		genesis_block = Block(
+			index=0,
+			previous_hash=0,
+			proof_type="Na",
+			stake=0,
+			timestamp=1582578648.950698,
+			transactions=transactions,
+			validator="God",
+			nonce=0,
+			signature="God"
+		)
+
+		genesis_block.previous_hash = genesis_block.compute_hash()
 		self.chain.append(genesis_block)
 
 	def get_next_validator(self, index):
@@ -256,11 +270,6 @@ class Blockchain:
 			previous_hash=last_block.compute_hash(),
 			stake=int(stake)
 		)
-
-		#next_validator = self.get_next_validator(new_block.index)
-
-		#if next_validator != bee:
-		#	return None, new_block
 
 		proof = self.proof_of_stake(new_block, bee)
 		self.add_pos_block(new_block, proof)
@@ -407,7 +416,9 @@ class Blockchain:
 		time_passed = block.timestamp - self.last_block().timestamp
 		computed_hash = block.compute_hash()
 		block.nonce = 0
-		while not int(computed_hash, 16) < (int(Blockchain.threshold, 16) * block.stake * time_passed):
+		while not int(computed_hash, 16) < (int(Blockchain.threshold, 16)
+											* block.stake
+											* time_passed):
 			block.nonce += 1
 			computed_hash = block.compute_hash()
 

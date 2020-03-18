@@ -17,8 +17,10 @@ transactions = []
 peers = set()
 
 blockchain = Blockchain()
+print(type(blockchain.last_block().to_dict()))
 address = "http://127.0.0.1:" + str(sys.argv[3])
 bee = Bee(address, 0)
+print(type(bee.public_key))
 blockchain.add_validator(bee)
 
 

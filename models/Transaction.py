@@ -2,10 +2,25 @@ import json
 from hashlib import sha256
 
 class Transaction:
-	def __init__(self, sender, recipient, amount, timestamp):
-		self.sender = sender
-		self.recipient = recipient
-		self.amount = amount
-		self.timestamp = timestamp
+	""" Stores data of a single transaction
 
-#https://medium.com/coinmonks/implementing-proof-of-stake-e26fa5fb8716
+	vars:
+	amount - (integer) amount of honeycomb to be sent in the transaction
+	recipient - (string) address of bee recieving money from the transaction
+	sender - (string) address of bee sending money in the transaction
+	timestamp - (float) time that the transaction was created)
+	"""
+
+	def __init__(self, amount, recipient, sender, timestamp):
+		""" Constructs a Transaction object
+
+		args:
+		amount - (integer) amount of honeycomb to be sent in the transaction
+		recipient - (string) address of bee recieving money from the transaction
+		sender - (string) address of bee sending money in the transaction
+		timestamp - (float) time that the transaction was created)
+		"""
+		self.amount = amount
+		self.recipient = recipient
+		self.sender = sender
+		self.timestamp = timestamp
