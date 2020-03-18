@@ -27,7 +27,6 @@ class Blockchain:
 	add_transactions(transaction) - adds transaction to list of unconfirmed transactions
 	add_validator(bee) - adds validator to list of validators
 	calculate_validator_stakes(index) - calculates the stakes of each validator
-	check_validity() - confirms validity of the blockchain
 	create_genesis_block() - generates the first block in the blockchain
 	get_next_validator(index) - finds next validator for proof of stake
 	last_block() - returns the last block in the chain
@@ -46,6 +45,7 @@ class Blockchain:
 	validate_proof_of_stake_v2(block, previous_block, proof) - validates a block's proof
 	of stake v2
 	validate_proof_of_work(block, proof) - validates block's proof of work
+	verify_chain() - confirms validity of the blockchain
 	verify_transaction(transaction) - verifies transaction
 	"""
 	difficulty = 2
@@ -60,90 +60,30 @@ class Blockchain:
 		self.validators = []
 		self.create_genesis_block()
 
-	def add_pow_block(self, block, proof):
-		""" Adds Block object mined using proof of work to the chain.
+	def add_block(self, block):
+		""" Adds block object to the end of the chain.
 
 		args:
-		block - (models.Block) Block object to be added to the chain
-		proof - (string) cryptographic hash of block to be added
-
-		return:
-		(boolean) true or false depending on whether block was added to the chain
+		block - (models.Block) block to be added to the chain
 		"""
-		if not self.validate_block(block):
-			return False
-		if not self.validate_proof_of_work(block, proof):
-			return False
-
 		self.chain.append(block)
 		self.stake += block.stake
 		self.unconfirmed_transactions = []
-		return True
-
-	def add_pos_block(self, block, proof):
-		""" Adds Block object mined using proof of stake to the chain.
-
-		args:
-		block - (models.Block) Block object to be added to the chain
-		proof - (string) public key of miner of the block to be added
-
-		return:
-		(boolean) true or false depending on whether block was added to the chain
-		"""
-		if not self.validate_block(block):
-			return False
-		if not self.validate_proof_of_stake(block, self.last_block(), proof):
-			return False
-
-		self.chain.append(block)
-		self.stake += block.stake
-		self.unconfirmed_transactions = []
-		return True
-
-	def add_pos_block_v2(self, block, proof):
-		""" Adds Block object mined using proof of stake v2 to the chain.
-
-		args:
-		block - (models.Block) Block object to be added to the chain
-		proof - (string) cryptographic hash of the block to be added
-
-		return:
-		(boolean) true or false depending on whether block was added to the chain
-		"""
-		if not self.validate_block(block):
-			return False
-		if not self.validate_proof_of_stake_v2(block, self.last_block(), proof):
-			return False
-
-		self.chain.append(block)
-		self.stake += block.stake
-		self.unconfirmed_transactions = []
-		return True
 
 	def add_transaction(self, transaction):
-		""" Adds Transaction object to list of unconfirmed transactions.
+		""" Adds transaction to list of unconfirmed transactions.
 
 		args:
-		block - (models.Transactions) Transaction object to be added to the unconfirmed
+		transaction - (models.Transactions) transaction to be added to the unconfirmed
 		transaction list
-
-		return:
-		(boolean) true or false depending on whether transactions was added to
-		unconfirmed transaction list
 		"""
-		for unconfirmed_transaction in self.unconfirmed_transactions:
-			if transaction.timestamp == unconfirmed_transaction.timestamp:
-				return False
-
 		self.unconfirmed_transactions.append(transaction)
-		return True
-
 
 	def add_validator(self, bee):
-		""" Adds a Bee object to list of validators.
+		""" Adds bee to list of validators.
 
 		args:
-		bee - (models.Transactions) Bee object to be added to the list of validators
+		bee - (models.Bee) bee to be added to the list of validators
 
 		return:
 		(boolean) true or false depending on whether bee was added to list of validators
@@ -163,32 +103,6 @@ class Blockchain:
 		"""
 		for validator in self.validators:
 			validator.calculate_balance(self.chain, index)
-
-	def check_validity(self):
-		""" Checks the validity of the blockchain.
-
-		return:
-		(boolean) - validity of the blockchain
-		"""
-		previous_block = None
-		for block in self.chain:
-			validator = Bee(block.validator, None)
-			self.add_validator(validator)
-
-			if block.proof_type == "PoW":
-				proof = block.compute_hash()
-				if not self.validate_proof_of_work(block, proof):
-					return False
-			if block.proof_type == "PoS":
-				proof = block.signature
-				if not self.validate_proof_of_stake(block, previous_block, proof):
-					return False
-			if block.proof_type == "PoS2":
-				proof = block.compute_hash()
-				if not self.validate_proof_of_stake_v2(block, previous_block, proof):
-					return False
-			previous_block = block
-		return True
 
 	def create_genesis_block(self):
 		""" Creates and adds the first block to the blockchain, distributes currencies to
@@ -234,113 +148,34 @@ class Blockchain:
 		return next_validator
 
 	def last_block(self):
-		""" Returns the last block in the blockchain
+		""" Returns the last block in the blockchain.
 
 		return:
 		(models.Block) - last block in chain
 		"""
 		return self.chain[-1]
 
-	def mine_pos(self, bee, stake):
-		""" Mines unconfirmed transactions into the next block using proof of stake.
-
-		args:
-		bee - (models.Bee) Bee object mining the new block
-		stake - (integer) stake being used to mine the block
-
-		return:
-		(string) - public key of bee mining the block
-		(models.Block) - block mined using proof of stake
-		"""
+	def mine_block(self, proof_type, stake, validator):
 		if not self.unconfirmed_transactions:
-			return None, None
-
-		self.calculate_validator_stakes(self.last_block().index + 1)
-		for transaction in self.unconfirmed_transactions:
-			if not self.verify_transaction(transaction):
-				self.unconfirmed_transactions.remove(transaction)
+			return None
 
 		last_block = self.last_block()
 		new_block = Block(
 			index=last_block.index + 1,
-			transactions=self.unconfirmed_transactions,
-			timestamp=time.time(),
-			proof_type="PoS",
-			validator=bee.address,
 			previous_hash=last_block.compute_hash(),
-			stake=int(stake)
+			proof_type=proof_type,
+			stake=stake,
+			timestamp=time.time(),
+			transactions=self.unconfirmed_transactions,
+			validator=validator
 		)
 
-		proof = self.proof_of_stake(new_block, bee)
-		self.add_pos_block(new_block, proof)
-		return proof, new_block
-
-	def mine_pos_v2(self, bee, stake):
-		""" Mines unconfirmed transactions into the next block using proof of stake v2.
-
-		args:
-		bee - (models.Bee) Bee object mining the new block
-		stake - (integer) stake being used to mine the block
-
-		return:
-		(string) - cryptographic hash of mined block
-		(models.Block) - block mined using proof of stake v2
-		"""
-		if not self.unconfirmed_transactions:
-			return None, None
-
-		self.calculate_validator_stakes(self.last_block().index + 1)
-		for transaction in self.unconfirmed_transactions:
-			if not self.verify_transaction(transaction):
-				self.unconfirmed_transactions.remove(transaction)
-
-		last_block = self.last_block()
-		new_block = Block(
-			index=last_block.index + 1,
-			transactions=self.unconfirmed_transactions,
-			timestamp=time.time(),
-			proof_type="PoS2",
-			validator=bee.address,
-			previous_hash=last_block.compute_hash(),
-			stake=int(stake)
-		)
-
-		proof = self.proof_of_stake_v2(new_block, bee)
-		self.add_pos_block_v2(new_block, proof)
-		return proof, new_block
-
-	def mine_pow(self, bee):
-		""" Mines unconfirmed transactions into the next block using proof of work.
-
-		args:
-		bee - (models.Bee) Bee object mining the new block
-
-		return:
-		(string) - cryptographic hash of mined block
-		(models.Block) - block mined using proof of work
-		"""
-		if not self.unconfirmed_transactions:
-			return None, None
-
-		self.calculate_validator_stakes(self.last_block().index + 1)
-		for transaction in self.unconfirmed_transactions:
-			if not self.verify_transaction(transaction):
-				self.unconfirmed_transactions.remove(transaction)
-
-		last_block = self.last_block()
-		new_block = Block(
-			index=last_block.index + 1,
-			transactions=self.unconfirmed_transactions,
-			timestamp=time.time(),
-			proof_type="PoW",
-			validator=bee.address,
-			previous_hash=last_block.compute_hash(),
-			stake=0
-		)
-
-		proof = self.proof_of_work(new_block)
-		self.add_pow_block(new_block, proof)
-		return proof, new_block
+		if proof_type == "PoS":
+			return self.proof_of_stake(new_block)
+		elif proof_type == "PoS2":
+			return self.proof_of_stake_v2(new_block)
+		elif proof_type == "PoW":
+			return self.proof_of_work(new_block)
 
 	def parse_json(self, chain):
 		""" Sets the data of the chain given a json representation of the chain.
@@ -377,74 +212,64 @@ class Blockchain:
 			self.chain.append(block)
 			self.stake += block.stake
 
-	def proof_of_stake(self, block, bee):
+	def proof_of_stake(self, block):
 		""" Validates a new block using proof of stake.
 
 		args:
-		block - (models.Block) Block object to be validated
-		bee - (models.Bee) Bee object validating the block
+		block - (models.Block) block to be validated
 
 		return:
-		(string or boolean) - public key of validating bee or false if bee does not have
-		enough stake
+		(models.Block) - validated block
 		"""
-		block.validator = bee.address
-		block.sign_block(bee)
 		validator = Bee(block.validator, 0)
 		honeycomb, stakes = validator.calculate_balance(self.chain, block.index)
 		if honeycomb < block.stake:
-			return False
+			return None
 
-		return bee.key_pair.publickey().export_key()
+		return block
 
-	def proof_of_stake_v2(self, block, bee):
+	def proof_of_stake_v2(self, block):
 		""" Validates a new block using proof of stake v2.
 
 		args:
-		block - (models.Block) Block object to be validated
-		bee - (models.Bee) Bee object validating the block
+		block - (models.Block) block to be validated
 
 		return:
-		(string or boolean) - cryptographic hash of mined block or false if bee does not
-		have enough stake
+		(models.Block) - validated block
 		"""
-		block.validator = bee.address
-		block.sign_block(bee)
 		validator = Bee(block.validator, 0)
 		honeycomb, stakes = validator.calculate_balance(self.chain, block.index)
 		if honeycomb < block.stake:
-			return False
+			return None
 
 		time_passed = block.timestamp - self.last_block().timestamp
 		computed_hash = block.compute_hash()
-		block.nonce = 0
 		while not int(computed_hash, 16) < (int(Blockchain.threshold, 16)
 											* block.stake
 											* time_passed):
 			block.nonce += 1
 			computed_hash = block.compute_hash()
 
-		return computed_hash
+		return block
 
 	def proof_of_work(self, block):
 		""" Validates a new block using proof of work.
 
 		args:
-		block - (models.Block) Block object to be validated
+		block - (models.Block) block to be validated
 
 		return:
-		(string) - cryptographic hash of mined block
+		(models.Block) - validated block
 		"""
-		block.nonce = 0
 		computed_hash = block.compute_hash()
 		while not computed_hash.startswith('0' * Blockchain.difficulty):
 			block.nonce += 1
 			computed_hash = block.compute_hash()
 
-		return computed_hash
+		return block
 
-	def validate_block(self, block):
-		""" Checks whether a blocks index and hash are valid.
+	def verify_block(self, block):
+		""" Verifies that a block is valid.
 
 		args:
 		block - (models.Block) Block object to be validated
@@ -453,74 +278,95 @@ class Blockchain:
 		(boolean) - validity of block
 		"""
 		last_block = self.last_block()
+		previous_hash = self.last_block().compute_hash()
 		if block.index != (last_block.index + 1):
 			return False
-
-		previous_hash = self.last_block().compute_hash()
-		if previous_hash != block.previous_hash:
+		elif block.timestamp < last_block.timestamp:
+			return False
+		elif block.timestamp > time.time():
+			return False
+		elif previous_hash != block.previous_hash:
 			return False
 
+		if block.proof_type == "PoS":
+			return verify_pos(block)
+		elif block.proof_type == "PoS2":
+			return verify_pos_v2(block)
+		elif block.proof_type == "PoW":
+			return verify_pow(block)
+		else:
+			return block.index == 0
+
+	def verify_chain(self):
+		""" Verifies that the blockchain is valid.
+
+		return:
+		(boolean) - validity of the blockchain
+		"""
+		previous_block = None
+		for block in self.chain:
+			validator = Bee(block.validator, None)
+			self.add_validator(validator)
+
+			if block.proof_type == "PoW":
+				proof = block.compute_hash()
+				if not self.validate_proof_of_work(block, proof):
+					return False
+			if block.proof_type == "PoS":
+				proof = block.signature
+				if not self.validate_proof_of_stake(block, previous_block, proof):
+					return False
+			if block.proof_type == "PoS2":
+				proof = block.compute_hash()
+				if not self.validate_proof_of_stake_v2(block, previous_block, proof):
+					return False
+			previous_block = block
 		return True
 
-	def validate_proof_of_stake(self, block, previous_block, proof):
+	def verify_pos(self, block):
 		""" Verifies whether a blocks proof of stake is valid.
 
 		args:
-		block - (models.Block) Block object to be validated
-		previous_block - (models.Block) Block object previous to block
-		proof - (string) public key of block's validating bee
+		block - (models.Block) Block object to be verified
 
 		return:
 		(boolean) - validity of proof of stake
 		"""
-		if block.timestamp > time.time():
-			return False
-
-		validator = Bee(block.validator, 0)
+		validator = Bee(address=block.validator, honeycomb=0)
 		honeycomb, stakes = validator.calculate_balance(self.chain, block.index)
-		if honeycomb < block.stake:
-			return False
+		return honeycomb >= block.stake
 
-		return True
-
-	def validate_proof_of_stake_v2(self, block, previous_block, proof):
+	def verify_pos_v2(self, block):
 		""" Verifies whether a blocks proof of stake v2 is valid.
 
 		args:
 		block - (models.Block) Block object to be validated
-		previous_block - (models.Block) Block object previous to block
-		proof - (string) cryptographic hash of block
 
 		return:
 		(boolean) - validity of proof of stake v2
 		"""
-		if block.timestamp > time.time():
-			return False
-
+		previous_block = self.chain[block.index - 1]
 		time_passed = block.timestamp - previous_block.timestamp
-		validator = Bee(block.validator, 0)
+		validator = Bee(address=block.validator, honeycomb=0)
 		honeycomb, stakes = validator.calculate_balance(self.chain, block.index)
 		if honeycomb < block.stake:
 			return False
-		if proof != block.compute_hash():
-			return False
-		if int(proof, 16) >= (int(Blockchain.threshold, 16) * block.stake * time_passed):
-			return False
 
-		return True
+		return (honeycomb < block.stake) and (int(proof, 16)
+												>= (int(Blockchain.threshold, 16)
+												* block.stake
+												* time_passed))
 
-	def validate_proof_of_work(self, block, proof):
+	def verify_pow(self, block):
 		""" Verifies whether a blocks proof of work is valid.
 
 		args:
 		block - (models.Block) Block object to be validated
-		proof - (string) cryptographic hash of block
 
 		return:
 		(boolean) - validity of proof of work
 		"""
-		return (proof.startswith('0' * Blockchain.difficulty)
-				and proof == block.compute_hash())
+		return (block.compute_hash().startswith('0' * Blockchain.difficulty))
 
 	def verify_transaction(self, transaction):
 		""" Verifies whether a transaction is valid.
@@ -531,11 +377,12 @@ class Blockchain:
 		return:
 		(boolean) - validity of transaction
 		"""
+		for unconfirmed_transaction in self.unconfirmed_transactions:
+			if transaction.timestamp == unconfirmed_transaction.timestamp:
+				return False
+
 		sender = Bee(transaction.sender, None)
 		if not self.add_validator(sender):
 			sender.calculate_balance(self.chain, self.last_block().index + 1)
 
-		if sender.honeycomb < int(transaction.amount):
-			return False
-
-		return True
+		return sender.honeycomb >= int(transaction.amount)

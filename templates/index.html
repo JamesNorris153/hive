@@ -62,16 +62,20 @@
 		<div class="column_third">
 			<div class="center">
 				<p>mine a block:</p>
-				<form method="get" action="/mine_pow">
-					<input type="submit" name="mine_pow" value="mine block (proof of work)">
+				<form method="post" action="/mine_block">
+					<input type="hidden" name="proof_type" value="PoW"><br>
+					<input type="hidden" name="stake" value=0><br>
+					<input type="submit" name="mine_block" value="mine block (proof of work)">
 				</form>
 
-				<form method="post" action="/mine_pos">
+				<form method="post" action="/mine_block">
+					<input type="hidden" name="proof_type" value="PoS"><br>
 					<input type="number" name="stake" placeholder="stake"><br>
 					<input type="submit" name="mine_pos" value="mine block (proof of stake)">
 				</form>
 
-				<form method="post" action="/mine_pos_v2">
+				<form method="post" action="/mine_block">
+					<input type="hidden" name="proof_type" value="PoS2"><br>
 					<input type="number" name="stake" placeholder="stake"><br>
 					<input type="submit" name="mine_pos_v2" value="mine block (proof of stake v2)">
 				</form>

@@ -11,7 +11,7 @@ import sys
 import time
 
 app = Flask(__name__)
-transaction_format = ["sender", "recipient", "amount"]
+transaction_format = ["amount", "recipient", "sender", "timestamp"]
 peer_format = ["address"]
 transactions = []
 peers = set()
@@ -39,9 +39,10 @@ def index():
 @app.route("/add_transaction", methods=["POST"])
 def add_transaction():
 	data = request.form.to_dict()
-
 	if not data:
 		data = json.loads(request.data)
+	if not data.get("timestamp"):
+		data["timestamp"] = time.time()
 
 	for field in transaction_format:
 		if not data.get(field):
@@ -53,40 +54,24 @@ def add_transaction():
 				transactions=transactions,
 				message="Invalid transaction data"), 406
 
-	if not data.get("timestamp"):
-		data["timestamp"] = time.time()
-
 	transaction = Transaction(
 		amount=data["amount"],
 		recipient=data["recipient"],
 		sender=data["sender"],
 		timestamp=data["timestamp"]
 	)
-
 	valid = blockchain.verify_transaction(transaction)
-
 	if not valid:
 		return render_template(
 			"index.html",
 			address=address,
 			balance=get_balance(),
 			transactions=transactions,
-			message="Transaction sender does not have required balance"
+			message="Transaction is not valid"
 		), 403
 
-	added = blockchain.add_transaction(transaction)
-
-	if not added:
-		return render_template(
-			"index.html",
-			address=address,
-			balance=get_balance(),
-			stakes=get_stakes(),
-			transactions=transactions,
-			message="Transaction already recorded"), 409
-
+	blockchain.add_transaction(transaction)
 	propogate_new_transaction(transaction)
-
 	return render_template(
 		"index.html",
 		address=address,
@@ -99,18 +84,39 @@ def add_transaction():
 @app.route("/get_chain", methods=["GET"])
 def get_chain():
 	chain = []
-
 	for block in blockchain.chain:
 		chain.append(block.to_dict())
-
 	return json.dumps({"chain": chain}), 200
 
 
+@app.route("/mine_block", methods=["POST"])
+def mine_block():
+	data = request.form.to_dict()
+	new_block = blockchain.mine_block(data["proof_type"], int(data["stake"]), bee.address)
+	if not new_block:
+		return render_template(
+			"index.html",
+			address=address,
+			balance=get_balance(),
+			stakes=get_stakes(),
+			transactions=transactions,
+			message="Could not mine transactions"), 412
+
+	blockchain.add_block(new_block)
+	update_transactions()
+	propogate_new_block(new_block)
+	return render_template(
+		"index.html",
+		address=address,
+		balance=get_balance(),
+		stakes=get_stakes(),
+		transactions=transactions,
+		message="Block #{} successfully mined".format(new_block.index)), 201
+
 @app.route("/mine_pow", methods=["GET"])
 def mine_pow():
-	proof, new_block = blockchain.mine_pow(bee)
-
-	if not proof and new_block:
+	new_block = blockchain.mine_pow(data["proof_type"], data["stake"], bee.address)
+	if not new_block:
 		return render_template(
 			"index.html",
 			address=address,
@@ -120,7 +126,7 @@ def mine_pow():
 			message="No transactions to mine"), 412
 
 	update_transactions()
-	propogate_new_block(proof, new_block)
+	propogate_new_block(new_block)
 
 	return render_template(
 		"index.html",
@@ -233,7 +239,6 @@ def register_new_peer():
 @app.route("/add_block", methods=["POST"])
 def add_block():
 	data = json.loads(request.json)
-	proof = data["proof"]
 	block_data = json.loads(data["block"])
 
 	transactions = []
@@ -258,16 +263,8 @@ def add_block():
 		nonce=block_data["nonce"],
 		signature=block_data["signature"])
 
-	if block_data["proof_type"] == "PoW":
-		added = blockchain.add_pow_block(block, proof)
-
-	if block_data["proof_type"] == "PoS":
-		added = blockchain.add_pos_block(block, proof)
-
-	if block_data["proof_type"] == "PoS2":
-		added = blockchain.add_pos_block_v2(block, proof)
-
-	if not added:
+	valid = blockchain.verify_block(block)
+	if not valid:
 		return render_template(
 			"index.html",
 			address=address,
@@ -276,9 +273,9 @@ def add_block():
 			transactions=transactions,
 			message="Invalid block"), 400
 
+	blockchain.add_block(block)
 	update_transactions()
 	propogate_new_block(proof, block)
-
 	return render_template(
 		"index.html",
 		address=address,
@@ -362,12 +359,10 @@ def get_peers():
 	return str(blockchain.validators), 200
 
 
-def propogate_new_block(proof, block):
+def propogate_new_block(block):
 	for peer in peers:
 		url = "{}/add_block".format(peer.address)
-		data = json.dumps({
-			"proof": str(proof),
-			"block": json.dumps(block.to_dict(), sort_keys=True)})
+		data = json.dumps({"block": json.dumps(block.to_dict(), sort_keys=True)})
 		requests.post(url, json=data)
 
 
