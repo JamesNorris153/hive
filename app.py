@@ -17,11 +17,9 @@ transactions = []
 peers = set()
 
 blockchain = Blockchain()
-print(type(blockchain.last_block().to_dict()))
 address = "http://127.0.0.1:" + str(sys.argv[3])
 bee = Bee(address, 0)
-print(type(bee.public_key))
-blockchain.add_validator(bee)
+blockchain.add_bee(bee)
 
 
 @app.route("/", methods=["GET"])
@@ -92,7 +90,7 @@ def get_chain():
 @app.route("/mine_block", methods=["POST"])
 def mine_block():
 	data = request.form.to_dict()
-	new_block = blockchain.mine_block(data["proof_type"], int(data["stake"]), bee.address)
+	new_block = blockchain.mine_block(bee.address, data["proof_type"], int(data["stake"]))
 	if not new_block:
 		return render_template(
 			"index.html",
@@ -223,9 +221,9 @@ def register_new_peer():
 	public_key = response.text
 	peer.public_key = public_key
 
-	blockchain.calculate_validator_stakes(blockchain.last_block().index + 1)
+	#blockchain.calculate_bee_balances(blockchain.last_block().index + 1)
 	peers.add(peer)
-	blockchain.add_validator(peer)
+	blockchain.add_bee(peer)
 
 	return render_template(
 		"index.html",
@@ -333,8 +331,7 @@ def consensus():
 
 
 def get_balance():
-	bee.calculate_balance(blockchain.chain, blockchain.last_block().index + 1)
-	return bee.honeycomb
+	return blockchain.bees[0].honeycomb
 
 
 def get_stakes():
@@ -356,18 +353,18 @@ def get_publickey():
 
 @app.route("/get_peers", methods=["GET"])
 def get_peers():
-	return str(blockchain.validators), 200
+	return str(blockchain.bees), 200
 
 
 def propogate_new_block(block):
-	for peer in peers:
+	for peer in blockchain.bees:
 		url = "{}/add_block".format(peer.address)
 		data = json.dumps({"block": json.dumps(block.to_dict(), sort_keys=True)})
 		requests.post(url, json=data)
 
 
 def propogate_new_transaction(transaction):
-	for peer in peers:
+	for peer in blockchain.bees:
 		url = "{}/add_transaction".format(peer.address)
 		data = json.dumps(transaction.__dict__)
 		requests.post(url, data=data)
