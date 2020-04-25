@@ -40,7 +40,7 @@ class Blockchain:
 	proof_of_stake_v2(block, bee) - creates a valid block using proof of stake v2
 	proof_of_work(block) - creates a valid block using proof of work
 	validate_block(block) - validates a block based on its index and hash
-	validate_proof_of_stake(block, previous_block, proof) - validates block's proof of
+	validate_proof_of_stake(block, previous_block, proof) - validates block's proof of3
 	stake
 	validate_proof_of_stake_v2(block, previous_block, proof) - validates a block's proof
 	of stake v2
@@ -48,34 +48,33 @@ class Blockchain:
 	verify_chain() - confirms validity of the blockchain
 	verify_transaction(transaction) - verifies transaction
 	"""
-	difficulty = 2
+	difficulty = 4
 	timeslot = 10
 	threshold = "0000999999999999999999999999999999999999999999999999999999999999"
 
 	def __init__(self):
 		""" Constucts a Blockchain object """
-		self.bees = []
 		self.chain = []
 		self.stake = 0
 		self.unconfirmed_transactions = []
 		self.create_genesis_block()
 
-	def add_bee(self, bee):
-		""" Adds bee to list of bees.
+	#def add_bee(self, bee):
+		#""" Adds bee to list of bees.
 
-		args:
-		bee - (models.Bee) bee to be added to the list of bee
+		#args:
+		#bee - (models.Bee) bee to be added to the list of bee
 
-		return:
-		(boolean) true or false depending on whether bee was added to list of bees
-		"""
-		for known_bee in self.bees:
-			if bee.address == known_bee.address:
-				return False
+		#return:
+		#(boolean) true or false depending on whether bee was added to list of bees
+		#"""
+		#for known_bee in self.bees:
+		#	if bee.address == known_bee.address:
+		#		return False
 
-		bee.calculate_balance(self.chain, self.last_block().index + 1)
-		self.bees.append(bee)
-		return True
+		#bee.calculate_balance(self.chain, self.last_block().index + 1)
+		#self.bees.append(bee)
+		#return True
 
 	def add_block(self, block):
 		""" Adds block object to the end of the chain.
@@ -83,9 +82,6 @@ class Blockchain:
 		args:
 		block - (models.Block) block to be added to the chain
 		"""
-		for transaction in block.transactions:
-			self.update_balances(transaction)
-
 		self.chain.append(block)
 		self.stake += int(block.stake)
 		self.unconfirmed_transactions = []
@@ -97,16 +93,20 @@ class Blockchain:
 		transaction - (models.Transactions) transaction to be added to the unconfirmed
 		transaction list
 		"""
+		for unconfirmed_transaction in self.unconfirmed_transactions:
+			if transaction.timestamp == unconfirmed_transaction.timestamp:
+				return False
 		self.unconfirmed_transactions.append(transaction)
+		return True
 
-	def calculate_bee_balances(self, index):
-		""" Calculates stakes currently placed by bees.
+	#def calculate_bee_balances(self, index):
+		#""" Calculates stakes currently placed by bees.
 
-		args:
-		index - (integer) chain height at which to calculate stakes
-		"""
-		for bee in self.bees:
-			bee.calculate_balance(self.chain, index)
+		#args:
+		#index - (integer) chain height at which to calculate stakes
+		#"""
+		#for bee in self.bees:
+		#	bee.calculate_balance(self.chain, index)
 
 	def create_genesis_block(self):
 		""" Creates and adds the first block to the blockchain, distributes currencies to
@@ -134,22 +134,22 @@ class Blockchain:
 		genesis_block.previous_hash = genesis_block.compute_hash()
 		self.chain.append(genesis_block)
 
-	def get_next_bee(self, index):
-		""" Finds bee with the highest balance
+	#def get_next_bee(self, index):
+		#""" Finds bee with the highest balance
 
-		args:
-		index - (integer) chain height at which to find the bee
+		#args:
+		#index - (integer) chain height at which to find the bee
 
-		return:
-		(models.Bee) - bee with the highest balance
-		"""
-		self.calculate_bee_balances(index)
-		next_bee = self.bees[0]
-		for bee in self.bees:
-			if bee.honeycomb > next_bee.honeycomb:
-				next_bee = bee
+		#return:
+		#(models.Bee) - bee with the highest balance
+		#"""
+		#self.calculate_bee_balances(index)
+		#next_bee = self.bees[0]
+		#for bee in self.bees:
+		#	if bee.honeycomb > next_bee.honeycomb:
+		#		next_bee = bee
 
-		return next_bee
+		#return next_bee
 
 	def last_block(self):
 		""" Returns the last block in the blockchain.
@@ -212,9 +212,6 @@ class Blockchain:
 					)
 				)
 
-				self.add_bee(Bee(address=transaction["recipient"], honeycomb=0))
-				self.add_bee(Bee(address=transaction["sender"], honeycomb=0))
-
 			block = Block(
 				index=block_data["index"],
 				transactions=transactions,
@@ -229,8 +226,6 @@ class Blockchain:
 
 			self.chain.append(block)
 			self.stake += block.stake
-
-		self.calculate_bee_balances(self.chain, self.last_block().index + 1)
 
 	def proof_of_stake(self, block):
 		""" Validates a new block using proof of stake.
@@ -262,11 +257,9 @@ class Blockchain:
 		if honeycomb < block.stake:
 			return None
 
-		time_passed = block.timestamp - self.last_block().timestamp
 		computed_hash = block.compute_hash()
 		while not int(computed_hash, 16) < (int(Blockchain.threshold, 16)
-											* block.stake
-											* time_passed):
+											* block.stake):
 			block.nonce += 1
 			computed_hash = block.compute_hash()
 
@@ -288,16 +281,16 @@ class Blockchain:
 
 		return block
 
-	def update_balances(self, transaction):
-		for sender in self.bees:
-			if sender.address == transaction.sender:
-				sender.decrement_balance(int(transaction.amount))
+	#def update_balances(self, transaction):
+	#	for sender in self.bees:
+	#		if sender.address == transaction.sender:
+	#			sender.decrement_balance(int(transaction.amount))
 
-		for recipient in self.bees:
-			if recipient.address == transaction.recipient:
-				recipient.increment_balance(int(transaction.amount))
+	#	for recipient in self.bees:
+	#		if recipient.address == transaction.recipient:
+	#			recipient.increment_balance(int(transaction.amount))
 
-	def verify_block(self, block):
+	def verify_block(self, block, previous_block):
 		""" Verifies that a block is valid.
 
 		args:
@@ -306,15 +299,14 @@ class Blockchain:
 		return:
 		(boolean) - validity of block
 		"""
-		last_block = self.last_block()
-		previous_hash = self.last_block().compute_hash()
-		if block.index != (last_block.index + 1):
+		previous_hash = previous_block.compute_hash()
+		if block.index != (previous_block.index + 1):
 			return False
-		elif block.timestamp < last_block.timestamp:
+		elif block.timestamp < previous_block.timestamp:
 			return False
 		elif block.timestamp > time.time():
 			return False
-		elif previous_hash != block.previous_hash:
+		elif block.previous_hash != previous_hash:
 			return False
 
 		for transaction in block.transactions:
@@ -322,13 +314,13 @@ class Blockchain:
 				return False
 
 		if block.proof_type == "PoS":
-			return verify_pos(block)
+			return self.verify_pos(block)
 		elif block.proof_type == "PoS2":
-			return verify_pos_v2(block)
+			return self.verify_pos_v2(block)
 		elif block.proof_type == "PoW":
-			return verify_pow(block)
+			return self.verify_pow(block)
 		else:
-			return block.index == 0
+			return False
 
 	def verify_chain(self):
 		""" Verifies that the blockchain is valid.
@@ -336,23 +328,12 @@ class Blockchain:
 		return:
 		(boolean) - validity of the blockchain
 		"""
-		previous_block = None
-		for block in self.chain:
-			bee = Bee(address=block.validator, honeycomb=0)
-			self.add_bee(bee)
-
-			if block.proof_type == "PoW":
-				proof = block.compute_hash()
-				if not self.validate_proof_of_work(block, proof):
-					return False
-			if block.proof_type == "PoS":
-				proof = block.signature
-				if not self.validate_proof_of_stake(block, previous_block, proof):
-					return False
-			if block.proof_type == "PoS2":
-				proof = block.compute_hash()
-				if not self.validate_proof_of_stake_v2(block, previous_block, proof):
-					return False
+		previous_block = self.chain[0]
+		chain = iter(self.chain)
+		next(chain)
+		for block in chain:
+			if not self.verify_block(block, previous_block):
+				return False
 			previous_block = block
 		return True
 
@@ -378,17 +359,13 @@ class Blockchain:
 		return:
 		(boolean) - validity of proof of stake v2
 		"""
-		previous_block = self.chain[block.index - 1]
-		time_passed = block.timestamp - previous_block.timestamp
 		bee = Bee(address=block.validator, honeycomb=0)
 		honeycomb, stakes = bee.calculate_balance(self.chain, block.index)
-		if honeycomb < block.stake:
-			return False
-
-		return (honeycomb < block.stake) and (int(proof, 16)
-												>= (int(Blockchain.threshold, 16)
-												* block.stake
-												* time_passed))
+		computed_hash = block.compute_hash()
+		return (honeycomb > block.stake) and (int(computed_hash, 16)
+												<=
+												(int(Blockchain.threshold, 16)
+												* block.stake))
 
 	def verify_pow(self, block):
 		""" Verifies whether a blocks proof of work is valid.
@@ -410,19 +387,7 @@ class Blockchain:
 		return:
 		(boolean) - validity of transaction
 		"""
-		for unconfirmed_transaction in self.unconfirmed_transactions:
-			if transaction.timestamp == unconfirmed_transaction.timestamp:
-				return False
-
-		sender = None
-		for bee in self.bees:
-			if bee.address == transaction.sender:
-				sender = bee
-
-		if not sender:
-			self.add_bee(sender)
-
-		print(sender.honeycomb)
-		print(sender.address)
+		sender = Bee(transaction.sender, 0)
+		sender.calculate_balance(self.chain, self.last_block().index + 1)
 
 		return sender.honeycomb >= int(transaction.amount)

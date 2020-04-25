@@ -17,12 +17,23 @@
 		<p>{{ message }}</p>
 	</div>
 
+	<div id="balance" class="center">
+		<p>your balance:</p>
+		<p>{{ balance }}</p>
+	</div>
+
 	<div class="row">
 
 		<div class="column_half">
-			<div id="balance" class="center">
-				<p>your balance:</p>
-				<p>{{ balance }}</p>
+			<div id="peers" class="center">
+				<p>your peers</p>
+				<table style="width:100%">
+					{% for peer in peers %}
+					<tr>
+						<td>{{ peer }}</td>
+					</tr>
+					{% endfor %}
+				</table>
 			</div>
 		</div>
 

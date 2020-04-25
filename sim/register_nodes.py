@@ -1,14 +1,19 @@
 import sys
 import requests
 
-if len(sys.argv) == 2:
-	total = int(sys.argv[1])
+if len(sys.argv) == 3:
+	start = int(sys.argv[1])
+	finish = int(sys.argv[2])
+elif len(sys.argv) == 2:
+	start = 0
+	finish = int(sys.argv[1])
 else:
-	total = 5
+	start = 0
+	finish = 5
 
 nodes = []
 
-for i in range(total):
+for i in range(start, finish):
 	new_node = "http://127.0.0.1:800{}".format(i)
 	print("connecting node {}:".format(new_node))
 

